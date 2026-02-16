@@ -25,6 +25,11 @@ private:
     uint32_t newPC; // Temporary variable to hold the new PC value if the instruction writes to it
 
     Memory* memory; // Pointer to the memory subsystem
+private:
+    void executeDataProcessing(AArch32Instruction instr);
+    void executeLoadStore(AArch32Instruction instr);
+    void executeBranch(AArch32Instruction instr);
+    void executeBranchExchange(AArch32Instruction instr);
 public:
     CPU_ExecutionEngine(Memory* mem, uint32_t initial_pc);
 
@@ -39,7 +44,7 @@ public:
 /**
     This class represents the overall CPU, which includes the execution engine and any additional components (e.g., coprocessors, interrupt handling).
  */
- class CPU {
+class CPU {
 private:
     CPU_ExecutionEngine execution_engine; // The execution engine responsible for executing instructions
 public:
