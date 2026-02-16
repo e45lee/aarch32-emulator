@@ -18,7 +18,6 @@ public:
     TestableExecutionEngine(Memory* mem, uint32_t initial_pc) : CPU_ExecutionEngine(mem, initial_pc) {}
 
 
-    void setRegister(int reg, uint32_t value) { registers[reg] = value; }
     void setCPSR(uint32_t value) { cpsr = value; }
 
     using CPU_ExecutionEngine::executeInstruction;

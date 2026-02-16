@@ -433,3 +433,7 @@ uint32_t CPU_ExecutionEngine::getRegister(int reg) const {
 uint32_t CPU_ExecutionEngine::getCPSR() const {
     return cpsr;
 }
+
+void CPU_ExecutionEngine::setRegister(int reg, uint32_t value) {
+    registers[reg] = value;
+}
