@@ -65,9 +65,11 @@ bool CPU_ExecutionEngine::shouldExecuteInstruction(AArch32Instruction instr) {
     }
 }
 
-void CPU_ExecutionEngine::executeInstruction(AArch32Instruction instr) {
+ExecutionResult CPU_ExecutionEngine::executeInstruction(AArch32Instruction instr) {
+    ExecutionResult result;
+
     if (!shouldExecuteInstruction(instr)) {
-        return; // Skip execution if condition is not met
+        return result; // Skip execution if condition is not met
     }
 
     // Decode and execute the instruction based on its type
@@ -81,21 +83,23 @@ void CPU_ExecutionEngine::executeInstruction(AArch32Instruction instr) {
             instr.bx.b20zero == 0 &&
             instr.bx.b819one == 0xFFF &&
             instr.bx.b7zero == 0) {
-            executeBranchExchange(instr);
+            result = executeBranchExchange(instr);
         } else {
             // Handle data processing instructions
-            executeDataProcessing(instr);
+            result = executeDataProcessing(instr);
         }
     } else if (instr.common.kind == 0b01) {
         // Handle load/store instructions
-        executeLoadStore(instr);
+        result = executeLoadStore(instr);
     } else if (instr.common.kind == 0b10) {
         // Handle branch instructions
-        executeBranch(instr);
+        result = executeBranch(instr);
     } else {
         uint32_t kind = instr.common.kind;
         throw std::runtime_error(std::format("Unknown instruction type: {}", kind));
     }
+
+    return result;
 }
 
 uint32_t CPU_ExecutionEngine::applyShift(uint32_t value, uint32_t shift_type, uint32_t shift_amount, bool& carry_out) {
@@ -166,7 +170,8 @@ void CPU_ExecutionEngine::updateFlags(uint32_t result, bool carry, bool overflow
     }
 }
 
-void CPU_ExecutionEngine::executeDataProcessing(AArch32Instruction instr) {
+ExecutionResult CPU_ExecutionEngine::executeDataProcessing(AArch32Instruction instr) {
+    ExecutionResult execResult;
     uint32_t operand1, operand2, result;
     bool carry = (cpsr >> 29) & 1;
     bool overflow = false;
@@ -272,6 +277,8 @@ void CPU_ExecutionEngine::executeDataProcessing(AArch32Instruction instr) {
 
     // Write result to destination register if needed
     if (write_result) {
+        execResult.wroteRegister = true;
+        execResult.registersWritten.insert(rd);
         if (rd == 15) {
             wrotePC = true;
             newPC = result & ~3; // Align to 4 bytes
@@ -287,10 +294,14 @@ void CPU_ExecutionEngine::executeDataProcessing(AArch32Instruction instr) {
             overflow = (cpsr >> 28) & 1;
         }
         updateFlags(result, carry_out, overflow);
+        execResult.wroteCPSR = true;
     }
+
+    return execResult;
 }
 
-void CPU_ExecutionEngine::executeLoadStore(AArch32Instruction instr) {
+ExecutionResult CPU_ExecutionEngine::executeLoadStore(AArch32Instruction instr) {
+    ExecutionResult execResult;
     uint32_t rn = instr.ls.rn;
     uint32_t rd = instr.ls.rd;
     uint32_t offset = instr.ls.offset;
@@ -310,7 +321,10 @@ void CPU_ExecutionEngine::executeLoadStore(AArch32Instruction instr) {
 
     // Perform load or store
     if (instr.ls.load) {
-        // Load instruction
+        // Load instruction - writes to register
+        execResult.wroteRegister = true;
+        execResult.registersWritten.insert(rd);
+
         if (instr.ls.byte) {
             // Load byte
             uint8_t value = memory->readByte(address);
@@ -334,7 +348,11 @@ void CPU_ExecutionEngine::executeLoadStore(AArch32Instruction instr) {
             }
         }
     } else {
-        // Store instruction
+        // Store instruction - writes to memory
+        execResult.wroteMemory = true;
+        execResult.memoryAddress = address;
+        execResult.memorySize = instr.ls.byte ? 1 : 4;
+
         uint32_t value = (rd == 15) ? (registers[15] + 8) : registers[rd];
         if (instr.ls.byte) {
             // Store byte
@@ -352,11 +370,16 @@ void CPU_ExecutionEngine::executeLoadStore(AArch32Instruction instr) {
         uint32_t new_base = instr.ls.up ? (base + offset) : (base - offset);
         if (rn != 15) { // Don't write back to PC
             registers[rn] = new_base;
+            // Note: Write-back also writes to a register (rn), but we only track the primary write
         }
     }
+
+    return execResult;
 }
 
-void CPU_ExecutionEngine::executeBranch(AArch32Instruction instr) {
+ExecutionResult CPU_ExecutionEngine::executeBranch(AArch32Instruction instr) {
+    ExecutionResult execResult;
+
     // Sign-extend the 24-bit offset to 32 bits
     int32_t offset = instr.branch.offset;
     if (offset & 0x800000) {
@@ -369,14 +392,22 @@ void CPU_ExecutionEngine::executeBranch(AArch32Instruction instr) {
     // If link bit is set, save return address to R14
     if (instr.branch.link) {
         registers[14] = registers[15] + 4; // Save return address
+        execResult.wroteRegister = true;
+        execResult.registersWritten.insert(14);
     }
 
     // Calculate new PC (current PC + 8 + offset)
+    // All branch instructions write to PC (R15)
     wrotePC = true;
     newPC = registers[15] + 8 + offset;
+    execResult.wroteRegister = true;
+    execResult.registersWritten.insert(15);
+
+    return execResult;
 }
 
-void CPU_ExecutionEngine::executeBranchExchange(AArch32Instruction instr) {
+ExecutionResult CPU_ExecutionEngine::executeBranchExchange(AArch32Instruction instr) {
+    ExecutionResult execResult;
     uint32_t rm = instr.bx.rm;
     uint32_t target = registers[rm];
 
@@ -385,6 +416,12 @@ void CPU_ExecutionEngine::executeBranchExchange(AArch32Instruction instr) {
     // For now, we'll just branch to the address (assuming ARM mode)
     wrotePC = true;
     newPC = target & ~3; // Align to 4 bytes for ARM mode
+
+    // BX writes to PC (R15)
+    execResult.wroteRegister = true;
+    execResult.registersWritten.insert(15);
+
+    return execResult;
 } 
 
 uint32_t CPU_ExecutionEngine::getRegister(int reg) const { 

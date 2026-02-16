@@ -10,9 +10,25 @@
 #define CPU_EE_H
 
 #include "instruction.h"
+#include <set>
 
 // Forward declaration
 class Memory;
+
+/**
+    Structure to hold information about what an instruction wrote during execution.
+*/
+struct ExecutionResult {
+    bool wroteRegister;            // True if a register was written
+    std::set<int> registersWritten; // Set of register numbers that were written (0-15)
+    bool wroteCPSR;                // True if CPSR was updated
+    bool wroteMemory;              // True if memory was written
+    uint32_t memoryAddress;        // Memory address that was written
+    uint32_t memorySize;           // Size of memory write (1 for byte, 4 for word)
+
+    ExecutionResult() : wroteRegister(false), wroteCPSR(false),
+                       wroteMemory(false), memoryAddress(0), memorySize(0) {}
+};
 
 /**
     This class represents the execution engine of the CPU, responsible for executing instruction and managing
@@ -30,10 +46,10 @@ protected:
     Memory* memory; // Pointer to the memory subsystem
 
 private:
-    void executeDataProcessing(AArch32Instruction instr);
-    void executeLoadStore(AArch32Instruction instr);
-    void executeBranch(AArch32Instruction instr);
-    void executeBranchExchange(AArch32Instruction instr);
+    ExecutionResult executeDataProcessing(AArch32Instruction instr);
+    ExecutionResult executeLoadStore(AArch32Instruction instr);
+    ExecutionResult executeBranch(AArch32Instruction instr);
+    ExecutionResult executeBranchExchange(AArch32Instruction instr);
 
     // Helper methods
     uint32_t applyShift(uint32_t value, uint32_t shift_type, uint32_t shift_amount, bool& carry_out);
@@ -41,7 +57,7 @@ private:
 public:
     CPU_ExecutionEngine(Memory* mem, uint32_t initial_pc);
 
-    void executeInstruction(AArch32Instruction instr);
+    ExecutionResult executeInstruction(AArch32Instruction instr);
     bool shouldExecuteInstruction(AArch32Instruction instr);
 
     uint32_t getNextPC() const;

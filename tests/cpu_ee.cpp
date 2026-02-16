@@ -36,9 +36,13 @@ TEST_CASE("Data Processing - MOV immediate", "[cpu_ee]") {
     instr.raw = 0xE3A0002A; // MOV R0, #42
 
     uint32_t initial_pc = cpu.getRegister(15);
-    cpu.executeInstruction(instr);
+    ExecutionResult result = cpu.executeInstruction(instr);
     REQUIRE(cpu.getRegister(0) == 42);
     REQUIRE(cpu.getRegister(15) == initial_pc); // PC should not change for non-branch instructions
+    REQUIRE(result.wroteRegister == true);
+    REQUIRE(result.registersWritten.count(0) == 1);
+    REQUIRE(result.wroteMemory == false);
+    REQUIRE(result.wroteCPSR == false); // S bit not set
 }
 
 TEST_CASE("Data Processing - ADD with flags", "[cpu_ee]") {
@@ -56,12 +60,16 @@ TEST_CASE("Data Processing - ADD with flags", "[cpu_ee]") {
     instr.raw = 0xE0910002; // ADD R0, R1, R2, S=1
 
     uint32_t initial_pc = cpu.getRegister(15);
-    cpu.executeInstruction(instr);
+    ExecutionResult result = cpu.executeInstruction(instr);
     REQUIRE(cpu.getRegister(0) == 30);
 
     // Check Z flag is clear
     REQUIRE((cpu.getCPSR() & (1 << 30)) == 0);
     REQUIRE(cpu.getRegister(15) == initial_pc); // PC should not change for non-branch instructions
+    REQUIRE(result.wroteRegister == true);
+    REQUIRE(result.registersWritten.count(0) == 1);
+    REQUIRE(result.wroteMemory == false);
+    REQUIRE(result.wroteCPSR == true); // S bit is set
 }
 
 TEST_CASE("Data Processing - SUB with carry and overflow", "[cpu_ee]") {
@@ -150,7 +158,7 @@ TEST_CASE("Data Processing - CMP sets flags but doesn't write result", "[cpu_ee]
     instr.raw = 0xE1510002; // CMP R1, R2
 
     uint32_t initial_pc = cpu.getRegister(15);
-    cpu.executeInstruction(instr);
+    ExecutionResult result = cpu.executeInstruction(instr);
 
     // R0 should be unchanged
     REQUIRE(cpu.getRegister(0) == 999);
@@ -158,6 +166,10 @@ TEST_CASE("Data Processing - CMP sets flags but doesn't write result", "[cpu_ee]
     // Z flag should be set
     REQUIRE((cpu.getCPSR() & (1 << 30)) != 0);
     REQUIRE(cpu.getRegister(15) == initial_pc); // PC should not change for non-branch instructions
+    // CMP doesn't write to a register
+    REQUIRE(result.wroteRegister == false);
+    REQUIRE(result.wroteMemory == false);
+    REQUIRE(result.wroteCPSR == true); // CMP always updates flags (implicit S bit)
 }
 
 TEST_CASE("Data Processing - Shifted operand", "[cpu_ee]") {
@@ -190,7 +202,7 @@ TEST_CASE("Load/Store - STR word", "[cpu_ee]") {
     instr.raw = 0xE5810004; // STR R0, [R1, #4]
 
     uint32_t initial_pc = cpu.getRegister(15);
-    cpu.executeInstruction(instr);
+    ExecutionResult result = cpu.executeInstruction(instr);
 
     // Check that the word was written correctly (little-endian)
     REQUIRE(mem.readByte(0x1004) == 0x78);
@@ -198,6 +210,11 @@ TEST_CASE("Load/Store - STR word", "[cpu_ee]") {
     REQUIRE(mem.readByte(0x1006) == 0x34);
     REQUIRE(mem.readByte(0x1007) == 0x12);
     REQUIRE(cpu.getRegister(15) == initial_pc); // PC should not change for non-branch instructions
+    REQUIRE(result.wroteRegister == false);
+    REQUIRE(result.wroteMemory == true);
+    REQUIRE(result.memoryAddress == 0x1004);
+    REQUIRE(result.memorySize == 4);
+    REQUIRE(result.wroteCPSR == false);
 }
 
 TEST_CASE("Load/Store - LDR word", "[cpu_ee]") {
@@ -217,9 +234,13 @@ TEST_CASE("Load/Store - LDR word", "[cpu_ee]") {
     instr.raw = 0xE5910000; // LDR R0, [R1]
 
     uint32_t initial_pc = cpu.getRegister(15);
-    cpu.executeInstruction(instr);
+    ExecutionResult result = cpu.executeInstruction(instr);
     REQUIRE(cpu.getRegister(0) == 0xDDCCBBAA);
     REQUIRE(cpu.getRegister(15) == initial_pc); // PC should not change for non-branch instructions
+    REQUIRE(result.wroteRegister == true);
+    REQUIRE(result.registersWritten.count(0) == 1);
+    REQUIRE(result.wroteMemory == false);
+    REQUIRE(result.wroteCPSR == false);
 }
 
 TEST_CASE("Load/Store - STRB byte", "[cpu_ee]") {
@@ -234,9 +255,14 @@ TEST_CASE("Load/Store - STRB byte", "[cpu_ee]") {
     instr.raw = 0xE5C10000; // STRB R0, [R1]
 
     uint32_t initial_pc = cpu.getRegister(15);
-    cpu.executeInstruction(instr);
+    ExecutionResult result = cpu.executeInstruction(instr);
     REQUIRE(mem.readByte(0x3000) == 0x78);
     REQUIRE(cpu.getRegister(15) == initial_pc); // PC should not change for non-branch instructions
+    REQUIRE(result.wroteRegister == false);
+    REQUIRE(result.wroteMemory == true);
+    REQUIRE(result.memoryAddress == 0x3000);
+    REQUIRE(result.memorySize == 1);
+    REQUIRE(result.wroteCPSR == false);
 }
 
 TEST_CASE("Load/Store - LDRB byte", "[cpu_ee]") {
@@ -251,9 +277,13 @@ TEST_CASE("Load/Store - LDRB byte", "[cpu_ee]") {
     instr.raw = 0xE5D10000; // LDRB R0, [R1]
 
     uint32_t initial_pc = cpu.getRegister(15);
-    cpu.executeInstruction(instr);
+    ExecutionResult result = cpu.executeInstruction(instr);
     REQUIRE(cpu.getRegister(0) == 0xAB);
     REQUIRE(cpu.getRegister(15) == initial_pc); // PC should not change for non-branch instructions
+    REQUIRE(result.wroteRegister == true);
+    REQUIRE(result.registersWritten.count(0) == 1);
+    REQUIRE(result.wroteMemory == false);
+    REQUIRE(result.wroteCPSR == false);
 }
 
 TEST_CASE("Load/Store - Pre-indexed with write-back", "[cpu_ee]") {
@@ -310,12 +340,18 @@ TEST_CASE("Branch - B (unconditional branch)", "[cpu_ee]") {
     instr.raw = 0xEA000004; // B #16
 
     uint32_t initial_pc = cpu.getRegister(15);
-    cpu.executeInstruction(instr);
+    ExecutionResult result = cpu.executeInstruction(instr);
 
     REQUIRE(cpu.didWritePC() == true);
     // PC + 8 + offset = 0x1000 + 8 + 16 = 0x1018
     REQUIRE(cpu.getNextPC() == 0x1018);
     REQUIRE(cpu.getRegister(15) == initial_pc); // PC writes should be tracked via getNextPC(), not registers[15]
+    // B writes to PC (R15)
+    REQUIRE(result.wroteRegister == true);
+    REQUIRE(result.registersWritten.count(15) == 1);
+    REQUIRE(result.registersWritten.size() == 1);
+    REQUIRE(result.wroteMemory == false);
+    REQUIRE(result.wroteCPSR == false);
 }
 
 TEST_CASE("Branch - BL (branch with link)", "[cpu_ee]") {
@@ -327,7 +363,7 @@ TEST_CASE("Branch - BL (branch with link)", "[cpu_ee]") {
     instr.raw = 0xEB000008; // BL #32
 
     uint32_t initial_pc = cpu.getRegister(15);
-    cpu.executeInstruction(instr);
+    ExecutionResult result = cpu.executeInstruction(instr);
 
     // R14 (LR) should contain return address (PC + 4)
     REQUIRE(cpu.getRegister(14) == 0x2004);
@@ -336,6 +372,13 @@ TEST_CASE("Branch - BL (branch with link)", "[cpu_ee]") {
     REQUIRE(cpu.didWritePC() == true);
     REQUIRE(cpu.getNextPC() == 0x2028); // 0x2000 + 8 + 32
     REQUIRE(cpu.getRegister(15) == initial_pc); // PC writes should be tracked via getNextPC(), not registers[15]
+    // BL writes to both R14 (link register) and R15 (PC)
+    REQUIRE(result.wroteRegister == true);
+    REQUIRE(result.registersWritten.count(14) == 1);
+    REQUIRE(result.registersWritten.count(15) == 1);
+    REQUIRE(result.registersWritten.size() == 2);
+    REQUIRE(result.wroteMemory == false);
+    REQUIRE(result.wroteCPSR == false);
 }
 
 TEST_CASE("Branch - Negative offset", "[cpu_ee]") {
@@ -368,11 +411,17 @@ TEST_CASE("Branch - BX (branch and exchange)", "[cpu_ee]") {
     instr.raw = 0xE12FFF15; // BX R5
 
     uint32_t initial_pc = cpu.getRegister(15);
-    cpu.executeInstruction(instr);
+    ExecutionResult result = cpu.executeInstruction(instr);
 
     REQUIRE(cpu.didWritePC() == true);
     REQUIRE(cpu.getNextPC() == 0x5000);
     REQUIRE(cpu.getRegister(15) == initial_pc); // PC writes should be tracked via getNextPC(), not registers[15]
+    // BX writes to PC (R15)
+    REQUIRE(result.wroteRegister == true);
+    REQUIRE(result.registersWritten.count(15) == 1);
+    REQUIRE(result.registersWritten.size() == 1);
+    REQUIRE(result.wroteMemory == false);
+    REQUIRE(result.wroteCPSR == false);
 }
 
 TEST_CASE("Conditional Execution - EQ (equal)", "[cpu_ee]") {
@@ -409,11 +458,15 @@ TEST_CASE("Conditional Execution - NE (not equal), condition false", "[cpu_ee]")
     instr.raw = 0x11A00001; // MOVNE R0, R1
 
     uint32_t initial_pc = cpu.getRegister(15);
-    cpu.executeInstruction(instr);
+    ExecutionResult result = cpu.executeInstruction(instr);
 
     // R0 should be unchanged because condition is false
     REQUIRE(cpu.getRegister(0) == 999);
     REQUIRE(cpu.getRegister(15) == initial_pc); // PC should not change for non-branch instructions
+    // Instruction didn't execute, so nothing should be written
+    REQUIRE(result.wroteRegister == false);
+    REQUIRE(result.wroteMemory == false);
+    REQUIRE(result.wroteCPSR == false);
 }
 
 TEST_CASE("Conditional Execution - GT (greater than)", "[cpu_ee]") {
@@ -564,4 +617,31 @@ TEST_CASE("Data Processing - TEQ (test equivalence)", "[cpu_ee]") {
     REQUIRE(cpu.getRegister(0) == 999); // R0 unchanged
     REQUIRE((cpu.getCPSR() & (1 << 30)) != 0); // Z flag set (values are equal)
     REQUIRE(cpu.getRegister(15) == initial_pc); // PC should not change for non-branch instructions
+}
+
+TEST_CASE("Data Processing - MOV to PC tracks register write", "[cpu_ee]") {
+    Memory mem;
+    TestableExecutionEngine cpu(&mem, 0x1000);
+
+    cpu.setRegister(1, 0x2000);
+
+    // MOV PC, R1 (write to PC/R15)
+    // Encoding: 1110 00 0 1101 0 0000 1111 00000000 0001
+    AArch32Instruction instr;
+    instr.raw = 0xE1A0F001; // MOV PC, R1
+
+    uint32_t initial_pc = cpu.getRegister(15);
+    ExecutionResult result = cpu.executeInstruction(instr);
+
+    // Verify PC write is tracked
+    REQUIRE(cpu.didWritePC() == true);
+    REQUIRE(cpu.getNextPC() == 0x2000);
+    REQUIRE(cpu.getRegister(15) == initial_pc); // PC tracked separately
+
+    // Verify ExecutionResult tracks the write to R15
+    REQUIRE(result.wroteRegister == true);
+    REQUIRE(result.registersWritten.count(15) == 1);
+    REQUIRE(result.registersWritten.size() == 1);
+    REQUIRE(result.wroteMemory == false);
+    REQUIRE(result.wroteCPSR == false);
 }
