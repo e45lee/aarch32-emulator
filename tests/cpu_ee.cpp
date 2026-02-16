@@ -17,8 +17,7 @@ class TestableExecutionEngine : public CPU_ExecutionEngine {
 public:
     TestableExecutionEngine(Memory* mem, uint32_t initial_pc) : CPU_ExecutionEngine(mem, initial_pc) {}
 
-    uint32_t getRegister(int reg) const { return registers[reg]; }
-    uint32_t getCPSR() const { return cpsr; }
+
     void setRegister(int reg, uint32_t value) { registers[reg] = value; }
     void setCPSR(uint32_t value) { cpsr = value; }
 

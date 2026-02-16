@@ -47,6 +47,9 @@ public:
     uint32_t getNextPC() const;
     bool didWritePC() const;
     void setNextPC();
+
+    uint32_t getRegister(int reg) const;
+    uint32_t getCPSR() const;
 };
 
 

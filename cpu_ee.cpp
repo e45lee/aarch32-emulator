@@ -386,3 +386,11 @@ void CPU_ExecutionEngine::executeBranchExchange(AArch32Instruction instr) {
     wrotePC = true;
     newPC = target & ~3; // Align to 4 bytes for ARM mode
 } 
+
+uint32_t CPU_ExecutionEngine::getRegister(int reg) const { 
+    return registers[reg]; 
+}
+
+uint32_t CPU_ExecutionEngine::getCPSR() const {
+    return cpsr;
+}
