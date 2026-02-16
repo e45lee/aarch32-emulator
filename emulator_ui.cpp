@@ -296,3 +296,11 @@ bool loadBinaryFile(EmulatorState& state, const std::string& filename, uint32_t 
 
     return true;
 }
+
+void applyInitialRegisters(EmulatorState& state) {
+    for (int i = 0; i < 13; i++) {
+        if (state.has_initial_registers[i]) {
+            state.cpu->setRegister(i, state.initial_registers[i]);
+        }
+    }
+}

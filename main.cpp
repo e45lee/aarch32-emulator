@@ -27,23 +27,66 @@ int main(int argc, char* argv[]) {
     // Set up console I/O handlers
     setupConsoleIO(state);
 
+    // Parse command line arguments
+    std::string binary_filename = "";
+    for (int i = 1; i < argc; i++) {
+        std::string arg = argv[i];
+
+        // Check for register flags --r0 through --r12
+        if (arg.substr(0, 3) == "--r" && arg.length() >= 4) {
+            std::string reg_num_str = arg.substr(3);
+            try {
+                int reg_num = std::stoi(reg_num_str);
+                if (reg_num >= 0 && reg_num <= 12) {
+                    // Next argument should be the value
+                    if (i + 1 < argc) {
+                        i++;
+                        std::string value_str = argv[i];
+                        uint32_t value = std::stoul(value_str, nullptr, 0); // Auto-detect base (0x for hex, etc.)
+                        state.initial_registers[reg_num] = value;
+                        state.has_initial_registers[reg_num] = true;
+                    } else {
+                        std::cerr << "Error: " << arg << " requires a value" << std::endl;
+                        return 1;
+                    }
+                } else {
+                    std::cerr << "Error: Invalid register number: " << arg << std::endl;
+                    std::cerr << "Valid registers are --r0 through --r12" << std::endl;
+                    return 1;
+                }
+            } catch (...) {
+                // Not a register flag, treat as filename
+                if (binary_filename.empty() && arg[0] != '-') {
+                    binary_filename = arg;
+                }
+            }
+        } else if (arg[0] != '-') {
+            // Positional argument - binary filename
+            if (binary_filename.empty()) {
+                binary_filename = arg;
+            }
+        }
+    }
+
     // Load program from file or use test program
-    if (argc >= 2) {
+    if (!binary_filename.empty()) {
         // Load binary file from command line argument
-        std::string filename = argv[1];
-        if (!loadBinaryFile(state, filename, 0x00000000)) {
-            std::cerr << "Failed to load binary file: " << filename << std::endl;
-            std::cerr << "Usage: " << argv[0] << " [binary_file]" << std::endl;
+        if (!loadBinaryFile(state, binary_filename, 0x00000000)) {
+            std::cerr << "Failed to load binary file: " << binary_filename << std::endl;
+            std::cerr << "Usage: " << argv[0] << " [binary_file] [--r0 VALUE] ... [--r12 VALUE]" << std::endl;
             return 1;
         }
-        state.loaded_filename = filename;
-        state.status_message = "Loaded: " + filename;
+        state.loaded_filename = binary_filename;
+        state.status_message = "Loaded: " + binary_filename;
     } else {
         // No file provided, load test program
         loadTestProgram(state);
         state.loaded_filename = ""; // Empty string indicates test program
         state.status_message = "Test program loaded";
     }
+
+    // Apply initial register values
+    applyInitialRegisters(state);
 
     // Create screen
     auto screen = ScreenInteractive::Fullscreen();

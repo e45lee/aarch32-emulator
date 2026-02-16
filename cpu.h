@@ -17,6 +17,7 @@ public:
     ExecutionResult step();
     ExecutionResult stepUntilPC(uint32_t target_pc);
     uint32_t getRegister(int reg) const;
+    void setRegister(int reg, uint32_t value);
     uint32_t getCPSR() const;
     bool isHalted() const;
 };

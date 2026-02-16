@@ -337,6 +337,9 @@ Component createEventHandler(Component base, EmulatorState& state, ScreenInterac
                 loadTestProgram(state);
                 state.status_message = "CPU reset";
             }
+
+            // Reapply initial register values
+            applyInitialRegisters(state);
             return true;
         }
 

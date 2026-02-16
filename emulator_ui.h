@@ -38,6 +38,8 @@ struct EmulatorState {
     std::string memory_address_input = "0x00000000";
     int current_tab = 0; // 0 = main view, 1 = memory view
     std::string loaded_filename = ""; // Filename of loaded binary (empty if test program)
+    uint32_t initial_registers[13] = {0}; // Initial values for R0-R12
+    bool has_initial_registers[13] = {false}; // Track which registers have custom initial values
 };
 
 /**
@@ -80,5 +82,10 @@ std::string formatRegister(const std::string& name, uint32_t value);
  * Get memory view around a specified address
  */
 std::vector<std::string> getMemoryView(EmulatorState& state, uint32_t address, int bytes_before = 64, int bytes_after = 64);
+
+/**
+ * Apply initial register values from state to the CPU
+ */
+void applyInitialRegisters(EmulatorState& state);
 
 #endif // EMULATOR_UI_H

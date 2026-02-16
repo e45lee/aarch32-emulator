@@ -43,6 +43,10 @@ uint32_t CPU::getRegister(int reg) const {
     return execution_engine.getRegister(reg);
 }
 
+void CPU::setRegister(int reg, uint32_t value) {
+    execution_engine.setRegister(reg, value);
+}
+
 uint32_t CPU::getCPSR() const {
     return execution_engine.getCPSR();
 }
