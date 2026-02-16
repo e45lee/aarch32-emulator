@@ -9,6 +9,8 @@
 #include "instruction.h"
 #include <sstream>
 #include <iomanip>
+#include <fstream>
+#include <iostream>
 
 std::string formatRegister(const std::string& name, uint32_t value) {
     std::ostringstream oss;
@@ -225,7 +227,7 @@ std::vector<std::string> getMemoryView(EmulatorState& state, uint32_t address, i
             uint32_t byte_addr = addr + i;
             try {
                 uint8_t byte = 0;
-                
+
                 try {
                     state.memory->readByte(byte_addr);
                 } catch (std::out_of_range&) {
@@ -252,4 +254,45 @@ std::vector<std::string> getMemoryView(EmulatorState& state, uint32_t address, i
     }
 
     return result;
+}
+
+bool loadBinaryFile(EmulatorState& state, const std::string& filename, uint32_t load_address) {
+    std::ifstream file(filename, std::ios::binary | std::ios::ate);
+
+    if (!file.is_open()) {
+        std::cerr << "Error: Could not open file: " << filename << std::endl;
+        return false;
+    }
+
+    // Get file size
+    std::streamsize size = file.tellg();
+    file.seekg(0, std::ios::beg);
+
+    if (size <= 0) {
+        std::cerr << "Error: File is empty or invalid: " << filename << std::endl;
+        return false;
+    }
+
+    // Read file into buffer
+    std::vector<uint8_t> buffer(size);
+    if (!file.read(reinterpret_cast<char*>(buffer.data()), size)) {
+        std::cerr << "Error: Failed to read file: " << filename << std::endl;
+        return false;
+    }
+
+    // Load buffer into memory
+    for (size_t i = 0; i < buffer.size(); i++) {
+        try {
+            state.memory->writeByte(load_address + i, buffer[i]);
+        } catch (const std::exception& e) {
+            std::cerr << "Error: Failed to write to memory at address 0x"
+                      << std::hex << (load_address + i) << ": " << e.what() << std::endl;
+            return false;
+        }
+    }
+
+    std::cout << "Loaded " << std::dec << size << " bytes from " << filename
+              << " at address 0x" << std::hex << load_address << std::endl;
+
+    return true;
 }

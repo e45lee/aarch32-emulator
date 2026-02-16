@@ -9,6 +9,7 @@
 #include <memory>
 #include <thread>
 #include <chrono>
+#include <iostream>
 
 #include "cpu.h"
 #include "mmio.h"
@@ -26,8 +27,23 @@ int main(int argc, char* argv[]) {
     // Set up console I/O handlers
     setupConsoleIO(state);
 
-    // Load test program
-    loadTestProgram(state);
+    // Load program from file or use test program
+    if (argc >= 2) {
+        // Load binary file from command line argument
+        std::string filename = argv[1];
+        if (!loadBinaryFile(state, filename, 0x00000000)) {
+            std::cerr << "Failed to load binary file: " << filename << std::endl;
+            std::cerr << "Usage: " << argv[0] << " [binary_file]" << std::endl;
+            return 1;
+        }
+        state.loaded_filename = filename;
+        state.status_message = "Loaded: " + filename;
+    } else {
+        // No file provided, load test program
+        loadTestProgram(state);
+        state.loaded_filename = ""; // Empty string indicates test program
+        state.status_message = "Test program loaded";
+    }
 
     // Create screen
     auto screen = ScreenInteractive::Fullscreen();
@@ -51,15 +67,18 @@ int main(int argc, char* argv[]) {
                 if (state.cpu->isHalted()) {
                     state.running = false;
                     state.status_message = "CPU halted";
+                    screen.PostEvent(ftxui::Event::Custom);                
                 }
             } catch (const std::exception& e) {
                 state.status_message = std::string("Error: ") + e.what();
                 state.running = false;
+                screen.PostEvent(ftxui::Event::Custom);                
             }
         }
 
         // Update UI
         loop.RunOnce();
+        std::this_thread::sleep_for(std::chrono::milliseconds(50)); // Prevent High CPU Usage.
     }
 
     return 0;

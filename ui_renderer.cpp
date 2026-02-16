@@ -325,8 +325,18 @@ Component createEventHandler(Component base, EmulatorState& state, ScreenInterac
             state.console_output.clear();
             state.console_input.clear();
             state.console_current_input.clear();
-            loadTestProgram(state);
-            state.status_message = "CPU reset";
+
+            // Reload program (from file if available, otherwise test program)
+            if (!state.loaded_filename.empty()) {
+                if (loadBinaryFile(state, state.loaded_filename, 0x00000000)) {
+                    state.status_message = "CPU reset - reloaded: " + state.loaded_filename;
+                } else {
+                    state.status_message = "CPU reset - failed to reload file";
+                }
+            } else {
+                loadTestProgram(state);
+                state.status_message = "CPU reset";
+            }
             return true;
         }
 

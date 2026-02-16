@@ -37,6 +37,7 @@ struct EmulatorState {
     uint32_t memory_view_address = 0x00000000;
     std::string memory_address_input = "0x00000000";
     int current_tab = 0; // 0 = main view, 1 = memory view
+    std::string loaded_filename = ""; // Filename of loaded binary (empty if test program)
 };
 
 /**
@@ -48,6 +49,12 @@ void setupConsoleIO(EmulatorState& state);
  * Load a simple test program into memory
  */
 void loadTestProgram(EmulatorState& state);
+
+/**
+ * Load a binary file into memory at the specified address
+ * Returns true on success, false on failure
+ */
+bool loadBinaryFile(EmulatorState& state, const std::string& filename, uint32_t load_address = 0x00000000);
 
 /**
  * Get disassembly view around the current PC
