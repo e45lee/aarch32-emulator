@@ -10,6 +10,8 @@
 #include <ftxui/component/component.hpp>
 #include <ftxui/component/screen_interactive.hpp>
 #include <ftxui/dom/elements.hpp>
+#include <sstream>
+#include <iomanip>
 
 using namespace ftxui;
 
@@ -34,8 +36,32 @@ Component createUIRenderer(EmulatorState& state) {
         return false;
     });
 
+    // Memory address input component
+    auto memory_addr_input = Input(&state.memory_address_input, "0x00000000");
+
+    // Wrap memory address input to handle Enter key
+    auto memory_addr_wrapped = CatchEvent(memory_addr_input, [&state](Event event) {
+        if (event == Event::Return) {
+            try {
+                // Parse the hex address
+                state.memory_view_address = std::stoul(state.memory_address_input, nullptr, 16);
+                state.status_message = "Memory address updated";
+            } catch (...) {
+                state.status_message = "Invalid memory address";
+            }
+            return true;
+        }
+        return false;
+    });
+
+    // Container for both inputs
+    auto input_container = Container::Vertical({
+        console_input_wrapped,
+        memory_addr_wrapped
+    });
+
     // Create a renderer that displays all panes
-    auto renderer = Renderer(console_input_wrapped, [&state, console_input_wrapped] {
+    auto renderer = Renderer(input_container, [&state, console_input_wrapped, memory_addr_wrapped] {
         // Get data for each pane
         auto disassembly = getDisassembly(state, 8, 8);
         auto registers = getRegisterView(state);
@@ -121,21 +147,76 @@ Component createUIRenderer(EmulatorState& state) {
             console_input_wrapped->Render()
         });
 
-        // Layout: 2x2 grid for the 4 panes, plus console input at bottom
-        auto top_row = hbox({
-            vbox({
-                reg_pane | size(HEIGHT, LESS_THAN, 20) | size(WIDTH, LESS_THAN, 40),
-                stack_pane | size(WIDTH, LESS_THAN, 40) | flex
-            }),
-            separator(),
-            disasm_pane | flex
+        // Build memory view pane
+        auto memory_view = getMemoryView(state, state.memory_view_address, 128, 128);
+        Elements memory_elements;
+        memory_elements.push_back(text("Memory View") | bold | center);
+        memory_elements.push_back(separator());
+        for (const auto& line : memory_view) {
+            if (line.substr(0, 3) == ">>>") {
+                memory_elements.push_back(text(line) | color(Color::Magenta) | bold);
+            } else if (line.substr(0, 6) == "Memory") {
+                memory_elements.push_back(text(line) | bold);
+            } else {
+                memory_elements.push_back(text(line));
+            }
+        }
+        auto memory_pane = window(text("Memory"),
+                                  vbox(std::move(memory_elements)) | vscroll_indicator | frame);
+
+        // Build memory address input area
+        auto memory_addr_box = hbox({
+            text("Address: ") | bold,
+            memory_addr_wrapped->Render(),
+            text(" | ") | dim,
+            text("PgUp/PgDn: ±256 bytes | Up/Down: ±16 bytes") | dim
         });
 
-        auto bottom_area = vbox({
-            console_pane | size(HEIGHT, LESS_THAN, 12),
-            separator(),
-            console_input_box
-        });
+        // Tab bar
+        auto tab_bar = hbox({
+            text(state.current_tab == 0 ? " [CPU View] " : "  CPU View  ") |
+                (state.current_tab == 0 ? bgcolor(Color::Blue) : bgcolor(Color::GrayDark)) | bold,
+            text(" | "),
+            text(state.current_tab == 1 ? " [Memory View] " : "  Memory View  ") |
+                (state.current_tab == 1 ? bgcolor(Color::Blue) : bgcolor(Color::GrayDark)) | bold,
+            text(" ") | flex,
+            text("F1: CPU | F2: Memory") | dim
+        }) | border;
+
+        Element main_content;
+
+        if (state.current_tab == 0) {
+            // CPU View (original layout)
+            auto top_row = hbox({
+                vbox({
+                    reg_pane | size(HEIGHT, LESS_THAN, 20) | size(WIDTH, LESS_THAN, 40),
+                    stack_pane | size(WIDTH, LESS_THAN, 40) | flex
+                }),
+                separator(),
+                vbox({
+                    disasm_pane | flex,
+                    console_pane | size(HEIGHT, GREATER_THAN, 10) | flex,
+                }) | flex
+            });
+
+            auto bottom_area = vbox({
+                separator(),
+                console_input_box
+            });
+
+            main_content = vbox({
+                top_row | flex,
+                separator(),
+                bottom_area
+            });
+        } else {
+            // Memory View
+            main_content = vbox({
+                memory_pane | flex,
+                separator(),
+                memory_addr_box
+            });
+        }
 
         // Status bar
         auto status_bar = hbox({
@@ -149,9 +230,9 @@ Component createUIRenderer(EmulatorState& state) {
 
         // Combine everything
         return vbox({
-            top_row | flex,
+            tab_bar,
             separator(),
-            bottom_area,
+            main_content | flex,
             separator(),
             status_bar
         });
@@ -165,6 +246,52 @@ Component createUIRenderer(EmulatorState& state) {
  */
 Component createEventHandler(Component base, EmulatorState& state, ScreenInteractive& screen) {
     return CatchEvent(base, [&state, &screen](Event event) {
+        // F1: Switch to CPU view
+        if (event == Event::F1) {
+            state.current_tab = 0;
+            state.status_message = "Switched to CPU view";
+            return true;
+        }
+
+        // F2: Switch to Memory view
+        if (event == Event::F2) {
+            state.current_tab = 1;
+            state.status_message = "Switched to Memory view";
+            return true;
+        }
+
+        // Memory navigation (only in memory view)
+        if (state.current_tab == 1) {
+            if (event == Event::PageDown) {
+                state.memory_view_address += 256;
+                std::ostringstream oss;
+                oss << "0x" << std::hex << std::setw(8) << std::setfill('0') << state.memory_view_address;
+                state.memory_address_input = oss.str();
+                return true;
+            }
+            if (event == Event::PageUp) {
+                state.memory_view_address -= 256;
+                std::ostringstream oss;
+                oss << "0x" << std::hex << std::setw(8) << std::setfill('0') << state.memory_view_address;
+                state.memory_address_input = oss.str();
+                return true;
+            }
+            if (event == Event::ArrowDown) {
+                state.memory_view_address += 16;
+                std::ostringstream oss;
+                oss << "0x" << std::hex << std::setw(8) << std::setfill('0') << state.memory_view_address;
+                state.memory_address_input = oss.str();
+                return true;
+            }
+            if (event == Event::ArrowUp) {
+                state.memory_view_address -= 16;
+                std::ostringstream oss;
+                oss << "0x" << std::hex << std::setw(8) << std::setfill('0') << state.memory_view_address;
+                state.memory_address_input = oss.str();
+                return true;
+            }
+        }
+
         // F5: Toggle run/stop
         if (event == Event::F5) {
             state.running = !state.running;
@@ -199,7 +326,7 @@ Component createEventHandler(Component base, EmulatorState& state, ScreenInterac
             return true;
         }
 
-        // Q: Quit
+        // F12: Quit
         if (event == Event::F12) {
             screen.Exit();
             return true;

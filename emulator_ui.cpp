@@ -197,3 +197,59 @@ void loadTestProgram(EmulatorState& state) {
     state.memory->writeByte(42, 0xA0);
     state.memory->writeByte(43, 0xE1);
 }
+
+std::vector<std::string> getMemoryView(EmulatorState& state, uint32_t address, int bytes_before, int bytes_after) {
+    std::vector<std::string> result;
+
+    // Align address to 16-byte boundary for cleaner display
+    uint32_t start_addr = (address - bytes_before) & ~0xF;
+    uint32_t end_addr = address + bytes_after;
+
+    result.push_back("Memory View (16 bytes per line):");
+
+    /* Wrap around  */
+    for (uint32_t addr = start_addr; addr != end_addr; addr += 16) {
+        std::ostringstream oss;
+
+        // Address column
+        if (addr <= address && address < addr + 16) {
+            oss << ">>> ";
+        } else {
+            oss << "    ";
+        }
+        oss << "0x" << std::hex << std::setw(8) << std::setfill('0') << addr << ": ";
+
+        // Hex bytes
+        std::string ascii_repr = "";
+        for (int i = 0; i < 16; i++) {
+            uint32_t byte_addr = addr + i;
+            try {
+                uint8_t byte = 0;
+                
+                try {
+                    state.memory->readByte(byte_addr);
+                } catch (std::out_of_range&) {
+                    byte = 0; // Treat out-of-range as zero for display
+                }
+
+                oss << std::hex << std::setw(2) << std::setfill('0') << (int)byte << " ";
+
+                // Build ASCII representation
+                if (byte >= 32 && byte <= 126) {
+                    ascii_repr += static_cast<char>(byte);
+                } else {
+                    ascii_repr += '.';
+                }
+            } catch (...) {
+                oss << "?? ";
+                ascii_repr += '?';
+            }
+        }
+
+        // Add ASCII representation
+        oss << " | " << ascii_repr;
+        result.push_back(oss.str());
+    }
+
+    return result;
+}

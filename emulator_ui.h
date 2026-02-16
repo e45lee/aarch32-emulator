@@ -34,6 +34,9 @@ struct EmulatorState {
     bool step_requested = false;
     int max_console_lines = 20;
     std::string status_message = "Ready";
+    uint32_t memory_view_address = 0x00000000;
+    std::string memory_address_input = "0x00000000";
+    int current_tab = 0; // 0 = main view, 1 = memory view
 };
 
 /**
@@ -65,5 +68,10 @@ std::vector<std::string> getRegisterView(EmulatorState& state);
  * Format a register value as a string
  */
 std::string formatRegister(const std::string& name, uint32_t value);
+
+/**
+ * Get memory view around a specified address
+ */
+std::vector<std::string> getMemoryView(EmulatorState& state, uint32_t address, int bytes_before = 64, int bytes_after = 64);
 
 #endif // EMULATOR_UI_H
