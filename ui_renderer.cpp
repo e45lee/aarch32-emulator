@@ -45,6 +45,7 @@ Component createUIRenderer(EmulatorState& state) {
             try {
                 // Parse the hex address
                 state.memory_view_address = std::stoul(state.memory_address_input, nullptr, 16);
+                state.memory_view_address &= ~0xF; // Align to 16 bytes
                 state.status_message = "Memory address updated";
             } catch (...) {
                 state.status_message = "Invalid memory address";
@@ -54,11 +55,14 @@ Component createUIRenderer(EmulatorState& state) {
         return false;
     });
 
-    // Container for both inputs
-    auto input_container = Container::Vertical({
-        console_input_wrapped,
-        memory_addr_wrapped
-    });
+    // Create a container that switches between inputs based on active tab
+    auto input_container = Container::Tab(
+        {
+            console_input_wrapped,
+            memory_addr_wrapped
+        },
+        &state.current_tab
+    );
 
     // Create a renderer that displays all panes
     auto renderer = Renderer(input_container, [&state, console_input_wrapped, memory_addr_wrapped] {
@@ -167,9 +171,9 @@ Component createUIRenderer(EmulatorState& state) {
         // Build memory address input area
         auto memory_addr_box = hbox({
             text("Address: ") | bold,
-            memory_addr_wrapped->Render(),
-            text(" | ") | dim,
-            text("PgUp/PgDn: ±256 bytes | Up/Down: ±16 bytes") | dim
+            memory_addr_wrapped->Render() | border,
+            text("  ") | dim,
+            text("(Press Enter to jump) | PgUp/PgDn: ±256 bytes | Up/Down: ±16 bytes") | dim
         });
 
         // Tab bar
