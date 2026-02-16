@@ -6,9 +6,13 @@
         - a basic MMIO class that provides read/write access to a byte-addressable memory space.
             that can be overriden with custom read/write handlers for specific address ranges (e.g., for memory-mapped I/O devices).
  */
- #include "memory.h"
- #include <map>
- #include <functional>
+
+#ifndef MMIO_H
+#define MMIO_H
+
+#include "memory.h"
+#include <map>
+#include <functional>
 
 class MemoryMappedIO : public Memory {
 public:
@@ -25,4 +29,6 @@ public:
 
     virtual uint8_t readByte(uint32_t address) override;
     virtual void writeByte(uint32_t address, uint8_t value) override;
- };
+};
+
+#endif // MMIO_H

@@ -1,8 +1,11 @@
 /**
     This class represents the overall CPU, which includes the execution engine and any additional components (e.g., coprocessors, interrupt handling).
  */
- #include "cpu_ee.h"
 
+#ifndef CPU_H
+#define CPU_H
+
+#include "cpu_ee.h"
 
 class CPU {
 private:
@@ -17,3 +20,5 @@ public:
     uint32_t getCPSR() const;
     bool isHalted() const;
 };
+
+#endif // CPU_H

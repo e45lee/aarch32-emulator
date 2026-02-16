@@ -25,10 +25,11 @@ include(Catch)
 # Set C++ version
 set(CMAKE_CXX_STANDARD 20)
 set(SOURCES memory.cpp mmio.cpp decode_instruction.cpp cpu_ee.cpp cpu.cpp)
+set(UI_SOURCES emulator_ui.cpp ui_renderer.cpp)
 set(TESTS tests/memory.cpp tests/mmio.cpp tests/decode_instruction.cpp tests/cpu_ee.cpp tests/cpu.cpp)
 
 # Build the main executable
-add_executable(aarch32-emulator main.cpp ${SOURCES})
+add_executable(aarch32-emulator main.cpp ${SOURCES} ${UI_SOURCES})
 target_link_libraries(aarch32-emulator
   PRIVATE ftxui::screen
   PRIVATE ftxui::dom

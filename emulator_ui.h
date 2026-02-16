@@ -1,0 +1,69 @@
+/**
+    emulator_ui.h
+
+    Header file for the emulator UI components, including state management
+    and display functions for registers, disassembly, stack, and console.
+*/
+
+#ifndef EMULATOR_UI_H
+#define EMULATOR_UI_H
+
+#include <memory>
+#include <string>
+#include <vector>
+#include <deque>
+#include "cpu.h"
+#include "mmio.h"
+
+// MMIO addresses for console I/O
+const uint32_t CONSOLE_OUT_ADDR = 0xFF000000;
+const uint32_t CONSOLE_IN_ADDR = 0xFF000004;
+const uint32_t CONSOLE_STATUS_ADDR = 0xFF000008; // bit 0: has input, bit 1: can output
+
+/**
+ * Structure to hold the emulator's runtime state for the UI
+ */
+struct EmulatorState {
+    std::shared_ptr<CPU> cpu;
+    std::shared_ptr<MemoryMappedIO> memory;
+    std::deque<std::string> console_output;
+    std::deque<char> console_input;
+    std::string console_current_input;
+    bool console_focused = false;
+    bool running = false;
+    bool step_requested = false;
+    int max_console_lines = 20;
+    std::string status_message = "Ready";
+};
+
+/**
+ * Set up MMIO handlers for console I/O
+ */
+void setupConsoleIO(EmulatorState& state);
+
+/**
+ * Load a simple test program into memory
+ */
+void loadTestProgram(EmulatorState& state);
+
+/**
+ * Get disassembly view around the current PC
+ */
+std::vector<std::string> getDisassembly(EmulatorState& state, int lines_before = 5, int lines_after = 5);
+
+/**
+ * Get stack view starting from the stack pointer
+ */
+std::vector<std::string> getStackView(EmulatorState& state, int num_entries = 16);
+
+/**
+ * Get register file display
+ */
+std::vector<std::string> getRegisterView(EmulatorState& state);
+
+/**
+ * Format a register value as a string
+ */
+std::string formatRegister(const std::string& name, uint32_t value);
+
+#endif // EMULATOR_UI_H
