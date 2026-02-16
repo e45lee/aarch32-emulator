@@ -229,7 +229,7 @@ std::vector<std::string> getMemoryView(EmulatorState& state, uint32_t address, i
                 uint8_t byte = 0;
 
                 try {
-                    state.memory->readByte(byte_addr);
+                    byte = state.memory->readByte(byte_addr);
                 } catch (std::out_of_range&) {
                     byte = 0; // Treat out-of-range as zero for display
                 }
