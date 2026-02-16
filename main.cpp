@@ -48,6 +48,10 @@ int main(int argc, char* argv[]) {
         if (state.running && !state.cpu->isHalted()) {
             try {
                 state.cpu->step();
+                if (state.cpu->isHalted()) {
+                    state.running = false;
+                    state.status_message = "CPU halted";
+                }
             } catch (const std::exception& e) {
                 state.status_message = std::string("Error: ") + e.what();
                 state.running = false;
@@ -56,9 +60,6 @@ int main(int argc, char* argv[]) {
 
         // Update UI
         loop.RunOnce();
-
-        // Small delay to prevent 100% CPU usage
-        std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
 
     return 0;
