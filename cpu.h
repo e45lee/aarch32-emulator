@@ -1,0 +1,31 @@
+/**
+    cpu.h
+    Headers for the CPU subsystem of the AArch32 emulator.
+     This includes:
+        - a basic CPU class that provides methods for fetching, decoding, and executing instructions.
+            It also includes registers and a program counter (PC) to keep track of the current instruction being executed.
+ */
+
+#ifndef CPU_H
+#define CPU_H
+
+#include "instruction.h"
+
+/**
+    This class represents the execution engine of the CPU, responsible for executing instruction and managing
+    the CPU state (registers, program counter, etc.). It interacts with the memory subsystem to fetch instructions and read/write data.
+ */
+class CPU_ExecutionEngine {
+private:
+    uint32_t registers[16]; // General-purpose registers R0-R15 (R13 is the stack register, R14 is the link register, R15 is the program counter)
+    uint32_t cpsr; // Current Program Status Register
+
+    Memory* memory; // Pointer to the memory subsystem
+public:
+    CPU_ExecutionEngine(Memory* mem, uint32_t initial_pc);
+
+    void executeInstruction(AArch32Instruction instr);
+    bool shouldExecuteInstruction(AArch32Instruction instr);
+}
+
+#endif
