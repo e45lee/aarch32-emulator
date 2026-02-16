@@ -24,8 +24,8 @@ include(Catch)
 
 # Set C++ version
 set(CMAKE_CXX_STANDARD 20)
-set(SOURCES memory.cpp mmio.cpp decode_instruction.cpp cpu_ee.cpp)
-set(TESTS tests/memory.cpp tests/mmio.cpp tests/decode_instruction.cpp tests/cpu_ee.cpp)
+set(SOURCES memory.cpp mmio.cpp decode_instruction.cpp cpu_ee.cpp cpu.cpp)
+set(TESTS tests/memory.cpp tests/mmio.cpp tests/decode_instruction.cpp tests/cpu_ee.cpp tests/cpu.cpp)
 
 # Build the main executable
 add_executable(aarch32-emulator main.cpp ${SOURCES})
