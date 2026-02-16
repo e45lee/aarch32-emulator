@@ -12,6 +12,8 @@ CPU_ExecutionEngine::CPU_ExecutionEngine(Memory* mem, uint32_t initial_pc) : mem
     for (int i = 0; i < 16; i++) {
         registers[i] = 0;
     }
+    // Set the link register to the halted PC value by default (this is just a convention for our emulator)
+    registers[14] = halted_pc;
     // Set the program counter to the initial value
     registers[15] = initial_pc;
     // Initialize CPSR to a default value (e.g., all flags cleared)

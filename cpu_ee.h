@@ -12,6 +12,9 @@
 #include "instruction.h"
 #include <set>
 
+// Constants
+const uint32_t halted_pc = 0x3fff0000; // A special PC value that indicates the CPU is halted. This is not a valid instruction address.  Initially stored in R14.
+
 // Forward declaration
 class Memory;
 
