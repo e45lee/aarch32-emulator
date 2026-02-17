@@ -36,6 +36,9 @@ target_link_libraries(aarch32-emulator-ui
   PRIVATE ftxui::component
 )
 
+# Build the CLI executable (no UI, uses stdin/stdout)
+add_executable(aarch32-cli cli-main.cpp ${SOURCES})
+
 # And the tests
 add_executable(aarch32-emulator-tests ${SOURCES} ${TESTS})
 target_link_libraries(aarch32-emulator-tests PRIVATE Catch2::Catch2WithMain)
