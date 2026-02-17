@@ -90,4 +90,15 @@ std::vector<std::string> getMemoryView(EmulatorState& state, uint32_t address, i
  */
 void applyInitialRegisters(EmulatorState& state);
 
+/**
+ * Exception that is thrown when there's no input
+ */
+class NoInputException : public std::exception {
+public:
+    const char* what() const noexcept override {
+        return "No input available";
+    }
+};
+
+
 #endif // EMULATOR_UI_H

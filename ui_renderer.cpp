@@ -327,7 +327,12 @@ Component createEventHandler(Component base, EmulatorState& state, ScreenInterac
                     ExecutionResult result = state.cpu->step();
                     state.last_written_registers = result.registersWritten;
                     state.status_message = "Stepped one instruction";
-                } catch (const std::exception& e) {
+                } 
+                catch (const NoInputException& e) {
+                    // No input available, just continue
+                    state.status_message = std::string("Waiting on input...");
+                }
+                catch (const std::exception& e) {
                     state.status_message = std::string("Error: ") + e.what();
                 }
             } else {

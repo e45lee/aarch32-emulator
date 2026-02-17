@@ -120,8 +120,13 @@ int main(int argc, char* argv[]) {
                     state.running = false;
                     state.status_message = "CPU halted";
                 }
-
-            } catch (const std::exception& e) {
+            } 
+            catch (const NoInputException& e) {
+                // No input available, just continue
+                state.status_message = std::string("Waiting on input...");
+                state.running = false;
+            }
+            catch (const std::exception& e) {
                 state.status_message = std::string("Error: ") + e.what();
                 state.running = false;
             }

@@ -167,6 +167,8 @@ void setupConsoleIO(EmulatorState& state) {
             char c = state.console_input.front();
             state.console_input.pop_front();
             return static_cast<uint8_t>(c);
+        } else {
+            throw NoInputException();
         }
         return 0;
     });
