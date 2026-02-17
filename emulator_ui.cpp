@@ -183,21 +183,21 @@ void setupConsoleIO(EmulatorState& state) {
 }
 
 void loadTestProgram(EmulatorState& state) {
-    // Load a simple test program (just NOPs for now)
-    for (int i = 0; i < 10; i++) {
-        // NOP instruction (MOV R0, R0) = 0xE1A00000
-        state.memory->writeByte(i * 4 + 0, 0x00);
-        state.memory->writeByte(i * 4 + 1, 0x00);
-        state.memory->writeByte(i * 4 + 2, 0xA0);
-        state.memory->writeByte(i * 4 + 3, 0xE1);
+    uint8_t data[] =
+        {0x24, 0x10, 0x8f, 0xe2, 
+        0x1c, 0x20, 0x9f, 0xe5, 
+        0x00, 0x00, 0xd1, 0xe5, 
+        0x00, 0x00, 0x50, 0xe3, 
+        0x02, 0x00, 0x00, 0x0a, 
+        0x00, 0x00, 0xc2, 0xe5, 
+        0x01, 0x10, 0x81, 0xe2, 
+        0xf9, 0xff, 0xff, 0xea, 
+        0x1e, 0xff, 0x2f, 0xe1, 
+        0x04, 0x00, 0x00, 0xea, 
+        0x00, 0x00, 0x00, 0x09, 0x48, 0x65, 0x6c, 0x6c, 0x6f, 0x2c, 0x20, 0x57, 0x6f, 0x72, 0x6c, 0x64, 0x0a, 0x00, 0x00, 0x00, };
+    for(size_t i = 0; i < sizeof(data); i++) {
+        state.memory->writeByte(i, data[i]);
     }
-
-    // Add a halt at the end (MOV PC, LR where LR = halted_pc)
-    // MOV PC, LR = 0xE1A0F00E
-    state.memory->writeByte(40, 0x0E);
-    state.memory->writeByte(41, 0xF0);
-    state.memory->writeByte(42, 0xA0);
-    state.memory->writeByte(43, 0xE1);
 }
 
 std::vector<std::string> getMemoryView(EmulatorState& state, uint32_t address, int bytes_before, int bytes_after) {

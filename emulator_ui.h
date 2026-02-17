@@ -16,9 +16,9 @@
 #include "mmio.h"
 
 // MMIO addresses for console I/O
-const uint32_t CONSOLE_OUT_ADDR = 0xFF000000;
-const uint32_t CONSOLE_IN_ADDR = 0xFF000004;
-const uint32_t CONSOLE_STATUS_ADDR = 0xFF000008; // bit 0: has input, bit 1: can output
+const uint32_t CONSOLE_OUT_ADDR = 0x9000000;
+const uint32_t CONSOLE_IN_ADDR = 0x9000004;
+const uint32_t CONSOLE_STATUS_ADDR = 0x9000008; // bit 0: has input, bit 1: can output
 
 /**
  * Structure to hold the emulator's runtime state for the UI

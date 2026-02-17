@@ -18,6 +18,14 @@
 
 using namespace ftxui;
 
+/**
+ * 
+ * Memory map
+ *  Lower half: 0x00000000 to 0x00FFFFFF (16 MiB) - General memory
+ *  MMIO: 0x9000000 to 0x900000F - Memory-mapped I/O for console
+ *  Upper half: 0xFF000000 to 0xFFFFFFFF (16 MiB) - Upper memory (for heap/stack)
+ */
+
 int main(int argc, char* argv[]) {
     // Create emulator state
     EmulatorState state;

@@ -27,7 +27,7 @@ private:
     uint32_t upper_start;
     uint32_t lower_end;
 public:
-    Memory(uint32_t lower_end = 0x0100000, uint32_t upper_start = 0xFF000000);
+    Memory(uint32_t lower_end = 0x1000000, uint32_t upper_start = 0xFF000000);
 
     virtual uint8_t readByte(uint32_t address);
     virtual void writeByte(uint32_t address, uint8_t value);

@@ -22,7 +22,7 @@ private:
     std::map<uint32_t, ReadHandler> read_handlers;
     std::map<uint32_t, WriteHandler> write_handlers;
 public:
-    MemoryMappedIO(uint32_t lower_end = 0x0100000, uint32_t upper_start = 0xFF000000);
+    MemoryMappedIO(uint32_t lower_end = 0x1000000, uint32_t upper_start = 0xFF000000);
 
     void setReadHandler(uint32_t address, ReadHandler handler);
     void setWriteHandler(uint32_t address, WriteHandler handler);
