@@ -175,21 +175,57 @@ std::string decodeInstruction(uint32_t raw_instruction) {
             return result;
         }
 
-        case 0b10: { // Branch
-            std::string result = instr.branch.link ? "BL" : "B";
-            result += cond_suffix;
+        case 0b10: { // Branch or Block Data Transfer
+            // Check if it's LDM/STM (bits [27:25] = 100) vs Branch (bits [27:25] = 101)
+            if (instr.ldm_stm.fixed100 == 0b100) {
+                // LDM/STM instruction
+                std::string result;
 
-            // Sign-extend the 24-bit offset to 32 bits and multiply by 4
-            int32_t offset = instr.branch.offset;
-            // Check if the sign bit (bit 23) is set
-            if (offset & 0x800000) {
-                offset |= static_cast<int32_t>(0xFF000000); // Sign extend
+                // Determine addressing mode suffix
+                if (instr.ldm_stm.pre_indexed) {
+                    result = instr.ldm_stm.up ? (instr.ldm_stm.load ? "LDMIB" : "STMIB") :
+                                                 (instr.ldm_stm.load ? "LDMDB" : "STMDB");
+                } else {
+                    result = instr.ldm_stm.up ? (instr.ldm_stm.load ? "LDMIA" : "STMIA") :
+                                                 (instr.ldm_stm.load ? "LDMDA" : "STMDA");
+                }
+
+                result += cond_suffix;
+                result += " R" + std::to_string(instr.ldm_stm.rn);
+                if (instr.ldm_stm.write_back) {
+                    result += "!";
+                }
+                result += ", {";
+
+                // Build register list
+                bool first = true;
+                for (int i = 0; i < 16; i++) {
+                    if (instr.ldm_stm.register_list & (1 << i)) {
+                        if (!first) result += ", ";
+                        result += "R" + std::to_string(i);
+                        first = false;
+                    }
+                }
+                result += "}";
+
+                return result;
+            } else {
+                // Branch instruction
+                std::string result = instr.branch.link ? "BL" : "B";
+                result += cond_suffix;
+
+                // Sign-extend the 24-bit offset to 32 bits and multiply by 4
+                int32_t offset = instr.branch.offset;
+                // Check if the sign bit (bit 23) is set
+                if (offset & 0x800000) {
+                    offset |= static_cast<int32_t>(0xFF000000); // Sign extend
+                }
+                offset <<= 2; // Multiply by 4 (PC-relative offset is in words)
+                offset += 8; // Account for PC+8 in ARM pipeline
+
+                result += " " + std::to_string(offset);
+                return result;
             }
-            offset <<= 2; // Multiply by 4 (PC-relative offset is in words)
-            offset += 8; // Account for PC+8 in ARM pipeline
-
-            result += " " + std::to_string(offset);
-            return result;
         }
 
         default:

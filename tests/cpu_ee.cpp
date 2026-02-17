@@ -983,3 +983,182 @@ TEST_CASE("Divide - SDIV by zero", "[cpu_ee]") {
     REQUIRE(cpu.getRegister(0) == 0);
     REQUIRE(cpu.getRegister(15) == initial_pc);
 }
+
+TEST_CASE("Block Data Transfer - STMIA basic", "[cpu_ee]") {
+    Memory mem;
+    TestableExecutionEngine cpu(&mem, 0x1000);
+
+    // Set up registers
+    cpu.setRegister(0, 0x11111111);
+    cpu.setRegister(1, 0x22222222);
+    cpu.setRegister(2, 0x33333333);
+    cpu.setRegister(13, 0x2000); // Base address (SP)
+
+    // STMIA R13, {R0, R1, R2}
+    // Encoding: cccc 100P USWL nnnn rrrrrrrrrrrrrrrr
+    // 1110 1000 1000 1101 0000000000000111
+    AArch32Instruction instr;
+    instr.raw = 0xE88D0007; // STMIA R13, {R0-R2}
+
+    uint32_t initial_pc = cpu.getRegister(15);
+    ExecutionResult result = cpu.executeInstruction(instr);
+
+    // Check that values were stored
+    uint32_t val0 = mem.readByte(0x2000) | (mem.readByte(0x2001) << 8) |
+                    (mem.readByte(0x2002) << 16) | (mem.readByte(0x2003) << 24);
+    uint32_t val1 = mem.readByte(0x2004) | (mem.readByte(0x2005) << 8) |
+                    (mem.readByte(0x2006) << 16) | (mem.readByte(0x2007) << 24);
+    uint32_t val2 = mem.readByte(0x2008) | (mem.readByte(0x2009) << 8) |
+                    (mem.readByte(0x200A) << 16) | (mem.readByte(0x200B) << 24);
+
+    REQUIRE(val0 == 0x11111111);
+    REQUIRE(val1 == 0x22222222);
+    REQUIRE(val2 == 0x33333333);
+    REQUIRE(cpu.getRegister(13) == 0x2000); // No write-back
+    REQUIRE(cpu.getRegister(15) == initial_pc);
+    REQUIRE(result.wroteMemory == true);
+}
+
+TEST_CASE("Block Data Transfer - LDMIA basic", "[cpu_ee]") {
+    Memory mem;
+    TestableExecutionEngine cpu(&mem, 0x1000);
+
+    // Set up memory
+    mem.writeByte(0x2000, 0x11);
+    mem.writeByte(0x2001, 0x11);
+    mem.writeByte(0x2002, 0x11);
+    mem.writeByte(0x2003, 0x11);
+    mem.writeByte(0x2004, 0x22);
+    mem.writeByte(0x2005, 0x22);
+    mem.writeByte(0x2006, 0x22);
+    mem.writeByte(0x2007, 0x22);
+
+    cpu.setRegister(13, 0x2000); // Base address
+
+    // LDMIA R13, {R0, R1}
+    // 1110 1000 1001 1101 0000000000000011
+    AArch32Instruction instr;
+    instr.raw = 0xE89D0003; // LDMIA R13, {R0-R1}
+
+    uint32_t initial_pc = cpu.getRegister(15);
+    ExecutionResult result = cpu.executeInstruction(instr);
+
+    REQUIRE(cpu.getRegister(0) == 0x11111111);
+    REQUIRE(cpu.getRegister(1) == 0x22222222);
+    REQUIRE(cpu.getRegister(13) == 0x2000); // No write-back
+    REQUIRE(cpu.getRegister(15) == initial_pc);
+    REQUIRE(result.wroteRegister == true);
+    REQUIRE(result.registersWritten.count(0) == 1);
+    REQUIRE(result.registersWritten.count(1) == 1);
+}
+
+TEST_CASE("Block Data Transfer - STMDB with write-back (PUSH)", "[cpu_ee]") {
+    Memory mem;
+    TestableExecutionEngine cpu(&mem, 0x1000);
+
+    cpu.setRegister(0, 0xAAAAAAAA);
+    cpu.setRegister(1, 0xBBBBBBBB);
+    cpu.setRegister(13, 0x2010); // SP
+
+    // STMDB R13!, {R0, R1} (equivalent to PUSH {R0, R1})
+    // 1110 1001 0010 1101 0000000000000011
+    AArch32Instruction instr;
+    instr.raw = 0xE92D0003; // STMDB R13!, {R0-R1}
+
+    uint32_t initial_pc = cpu.getRegister(15);
+    cpu.executeInstruction(instr);
+
+    // Check that SP was decremented
+    REQUIRE(cpu.getRegister(13) == 0x2008); // SP -= 8 (2 registers * 4 bytes)
+
+    // Check stored values
+    uint32_t val1 = mem.readByte(0x200C) | (mem.readByte(0x200D) << 8) |
+                    (mem.readByte(0x200E) << 16) | (mem.readByte(0x200F) << 24);
+    uint32_t val0 = mem.readByte(0x2008) | (mem.readByte(0x2009) << 8) |
+                    (mem.readByte(0x200A) << 16) | (mem.readByte(0x200B) << 24);
+
+    REQUIRE(val0 == 0xAAAAAAAA);
+    REQUIRE(val1 == 0xBBBBBBBB);
+    REQUIRE(cpu.getRegister(15) == initial_pc);
+}
+
+TEST_CASE("Block Data Transfer - LDMIA with write-back (POP)", "[cpu_ee]") {
+    Memory mem;
+    TestableExecutionEngine cpu(&mem, 0x1000);
+
+    // Set up stack with values
+    mem.writeByte(0x2000, 0xAA);
+    mem.writeByte(0x2001, 0xAA);
+    mem.writeByte(0x2002, 0xAA);
+    mem.writeByte(0x2003, 0xAA);
+    mem.writeByte(0x2004, 0xBB);
+    mem.writeByte(0x2005, 0xBB);
+    mem.writeByte(0x2006, 0xBB);
+    mem.writeByte(0x2007, 0xBB);
+
+    cpu.setRegister(13, 0x2000); // SP
+
+    // LDMIA R13!, {R0, R1} (equivalent to POP {R0, R1})
+    // 1110 1000 1011 1101 0000000000000011
+    AArch32Instruction instr;
+    instr.raw = 0xE8BD0003; // LDMIA R13!, {R0-R1}
+
+    uint32_t initial_pc = cpu.getRegister(15);
+    ExecutionResult result = cpu.executeInstruction(instr);
+
+    REQUIRE(cpu.getRegister(0) == 0xAAAAAAAA);
+    REQUIRE(cpu.getRegister(1) == 0xBBBBBBBB);
+    REQUIRE(cpu.getRegister(13) == 0x2008); // SP += 8
+    REQUIRE(cpu.getRegister(15) == initial_pc);
+    REQUIRE(result.registersWritten.count(13) == 1); // SP was written
+}
+
+TEST_CASE("Block Data Transfer - STMIB increment before", "[cpu_ee]") {
+    Memory mem;
+    TestableExecutionEngine cpu(&mem, 0x1000);
+
+    cpu.setRegister(0, 0x12345678);
+    cpu.setRegister(5, 0x2000); // Base register
+
+    // STMIB R5, {R0}
+    // 1110 1001 1000 0101 0000000000000001
+    AArch32Instruction instr;
+    instr.raw = 0xE9850001; // STMIB R5, {R0}
+
+    cpu.executeInstruction(instr);
+
+    // Check that value was stored at base + 4 (increment before)
+    uint32_t val = mem.readByte(0x2004) | (mem.readByte(0x2005) << 8) |
+                   (mem.readByte(0x2006) << 16) | (mem.readByte(0x2007) << 24);
+
+    REQUIRE(val == 0x12345678);
+    REQUIRE(cpu.getRegister(5) == 0x2000); // Base unchanged
+}
+
+TEST_CASE("Block Data Transfer - Multiple registers", "[cpu_ee]") {
+    Memory mem;
+    TestableExecutionEngine cpu(&mem, 0x1000);
+
+    // Set up multiple registers
+    for (int i = 0; i < 8; i++) {
+        cpu.setRegister(i, 0x10000000 + i);
+    }
+    cpu.setRegister(13, 0x3000);
+
+    // STMIA R13!, {R0-R7}
+    // 1110 1000 1010 1101 0000000011111111
+    AArch32Instruction instr;
+    instr.raw = 0xE8AD00FF; // STMIA R13!, {R0-R7}
+
+    cpu.executeInstruction(instr);
+
+    // Verify all 8 registers were stored
+    for (int i = 0; i < 8; i++) {
+        uint32_t addr = 0x3000 + (i * 4);
+        uint32_t val = mem.readByte(addr) | (mem.readByte(addr + 1) << 8) |
+                       (mem.readByte(addr + 2) << 16) | (mem.readByte(addr + 3) << 24);
+        REQUIRE(val == (0x10000000 + i));
+    }
+
+    REQUIRE(cpu.getRegister(13) == 0x3020); // SP += 32 (8 registers)
+}

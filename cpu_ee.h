@@ -55,6 +55,7 @@ private:
     ExecutionResult executeBranchExchange(AArch32Instruction instr);
     ExecutionResult executeMultiply(AArch32Instruction instr);
     ExecutionResult executeDivide(AArch32Instruction instr);
+    ExecutionResult executeBlockDataTransfer(AArch32Instruction instr);
 
     // Helper methods
     uint32_t applyShift(uint32_t value, uint32_t shift_type, uint32_t shift_amount, bool& carry_out);

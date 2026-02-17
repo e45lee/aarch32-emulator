@@ -105,8 +105,13 @@ ExecutionResult CPU_ExecutionEngine::executeInstruction(AArch32Instruction instr
             result = executeLoadStore(instr);
         }
     } else if (instr.common.kind == 0b10) {
-        // Handle branch instructions
-        result = executeBranch(instr);
+        // Check for LDM/STM (bits [27:25] = 100) vs Branch (bits [27:25] = 101)
+        if (instr.ldm_stm.fixed100 == 0b100) {
+            result = executeBlockDataTransfer(instr);
+        } else {
+            // Handle branch instructions
+            result = executeBranch(instr);
+        }
     } else {
         uint32_t kind = instr.common.kind;
         throw std::runtime_error(std::format("Unknown instruction type: {}", kind));
@@ -522,6 +527,97 @@ ExecutionResult CPU_ExecutionEngine::executeDivide(AArch32Instruction instr) {
     execResult.registersWritten.insert(instr.div.rd);
 
     // Division instructions do not update flags
+
+    return execResult;
+}
+
+ExecutionResult CPU_ExecutionEngine::executeBlockDataTransfer(AArch32Instruction instr) {
+    ExecutionResult execResult;
+
+    uint32_t base_reg = instr.ldm_stm.rn;
+    uint32_t address = registers[base_reg];
+    uint32_t register_list = instr.ldm_stm.register_list;
+
+    // Count number of registers in the list
+    int num_registers = 0;
+    for (int i = 0; i < 16; i++) {
+        if (register_list & (1 << i)) {
+            num_registers++;
+        }
+    }
+
+    // Calculate start address based on addressing mode
+    uint32_t start_address = address;
+    if (!instr.ldm_stm.up) {
+        // Decrement modes: DA or DB
+        if (instr.ldm_stm.pre_indexed) {
+            // DB (Decrement Before): start at base - num_regs*4
+            start_address = address - (num_registers * 4);
+        } else {
+            // DA (Decrement After): start at base - (num_regs-1)*4
+            start_address = address - (num_registers * 4) + 4;
+        }
+    } else {
+        // Increment modes: IA or IB
+        if (instr.ldm_stm.pre_indexed) {
+            // IB (Increment Before): start at base + 4
+            start_address = address + 4;
+        } else {
+            // IA (Increment After): start at base
+            start_address = address;
+        }
+    }
+
+    // Perform load/store for each register in the list
+    uint32_t current_address = start_address;
+    for (int i = 0; i < 16; i++) {
+        if (register_list & (1 << i)) {
+            if (instr.ldm_stm.load) {
+                // LDM: Load register from memory
+                uint32_t value = 0;
+                for (int j = 0; j < 4; j++) {
+                    value |= ((uint32_t)memory->readByte(current_address + j)) << (j * 8);
+                }
+
+                if (i == 15) {
+                    // Loading PC
+                    wrotePC = true;
+                    newPC = value & ~3;
+                } else {
+                    registers[i] = value;
+                }
+
+                execResult.wroteRegister = true;
+                execResult.registersWritten.insert(i);
+            } else {
+                // STM: Store register to memory
+                uint32_t value = (i == 15) ? (registers[15] + 8) : registers[i];
+                for (int j = 0; j < 4; j++) {
+                    memory->writeByte(current_address + j, (value >> (j * 8)) & 0xFF);
+                }
+
+                execResult.wroteMemory = true;
+                execResult.memoryAddress = current_address;
+                execResult.memorySize = 4;
+            }
+
+            current_address += 4;
+        }
+    }
+
+    // Write-back: update base register
+    if (instr.ldm_stm.write_back) {
+        uint32_t final_address;
+        if (instr.ldm_stm.up) {
+            final_address = address + (num_registers * 4);
+        } else {
+            final_address = address - (num_registers * 4);
+        }
+
+        registers[base_reg] = final_address;
+        execResult.wroteRegister = true;
+        execResult.registersWritten.insert(base_reg);
+    }
 
     return execResult;
 }

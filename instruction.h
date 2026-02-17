@@ -124,6 +124,19 @@ union AArch32Instruction {
         uint32_t cond : 4;
     } div;
 
+    // Block data transfer instructions (LDM, STM)
+    struct {
+        uint32_t register_list : 16; // Bitmask of registers to load/store
+        uint32_t rn : 4;             // Base register
+        uint32_t load : 1;           // 1 = LDM, 0 = STM
+        uint32_t write_back : 1;     // Write back to base register
+        uint32_t s : 1;              // PSR & force user mode
+        uint32_t up : 1;             // 1 = increment, 0 = decrement
+        uint32_t pre_indexed : 1;    // 1 = pre-increment/decrement, 0 = post
+        uint32_t fixed100 : 3;       // Should be 0b100
+        uint32_t cond : 4;
+    } ldm_stm;
+
     // Common fields accessible from any instruction
     struct {
         uint32_t low_bits : 26;
