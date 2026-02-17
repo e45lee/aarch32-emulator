@@ -84,7 +84,8 @@ void setupConsoleIO(MemoryMappedIO* memory) {
     memory->setReadHandler(CONSOLE_STATUS_ADDR, [](uint32_t address) -> uint8_t {
         // Use peek() to check if we can read without consuming
         // peek() returns EOF when at end of stream
-        return !std::cin ? 0x01 : 0x00;
+        std::cin.peek();
+        return std::cin.eof() ? 0x01 : 0x00;
     });
 }
 
