@@ -29,8 +29,8 @@ set(UI_SOURCES emulator_ui.cpp ui_renderer.cpp)
 set(TESTS tests/memory.cpp tests/mmio.cpp tests/decode_instruction.cpp tests/cpu_ee.cpp tests/cpu.cpp)
 
 # Build the main executable
-add_executable(aarch32-emulator main.cpp ${SOURCES} ${UI_SOURCES})
-target_link_libraries(aarch32-emulator
+add_executable(aarch32-emulator-ui ui-main.cpp ${SOURCES} ${UI_SOURCES})
+target_link_libraries(aarch32-emulator-ui
   PRIVATE ftxui::screen
   PRIVATE ftxui::dom
   PRIVATE ftxui::component
