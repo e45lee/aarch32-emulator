@@ -66,6 +66,25 @@ union AArch32Instruction {
         uint32_t cond : 4;
     } ls;
 
+    // Load/Store instructions (offset-register variant)
+    struct {
+        uint32_t rm : 4;
+        uint32_t unused_bit4 : 1;
+        uint32_t shift_type : 2;
+        uint32_t shift_imm : 5;
+        uint32_t rd : 4;
+        uint32_t rn : 4;
+        uint32_t load : 1;
+        uint32_t write_back : 1;
+        uint32_t byte : 1;
+        uint32_t up : 1;
+        uint32_t pre_indexed : 1;
+        uint32_t immediate : 1;
+        uint32_t kind : 2;
+        uint32_t cond : 4;
+    } ls_reg;
+
+
     // Branch and exchange instructions
     struct {
         uint32_t rm : 4;

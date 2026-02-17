@@ -104,6 +104,18 @@ TEST_CASE("Load/Store instructions", "[instruction][decode]") {
         REQUIRE(decodeInstruction(instr) == "LDR R0, [R1, #4]");
     }
 
+    SECTION("LDR with register offset") {
+        // LDR R2, [R3, R4]
+        uint32_t instr = 0xE7932004; // LDR R2, [R3, R4]
+        REQUIRE(decodeInstruction(instr) == "LDR R2, [R3, R4]");
+    }
+
+    SECTION("LDR with register offset and shift") {
+        // LDR R2, [R3, R4, LSL #2]
+        uint32_t instr = 0xE7932104; // LDR R2, [R3, R4, LSL #2]
+        REQUIRE(decodeInstruction(instr) == "LDR R2, [R3, R4, LSL #2]");
+    }
+
     SECTION("STR with immediate offset") {
         // STR R2, [R3, #8]
         uint32_t instr = 0xE5832008; // STR R2, [R3, #8]

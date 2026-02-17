@@ -96,23 +96,48 @@ std::string decodeInstruction(uint32_t raw_instruction) {
             result += " R" + std::to_string(instr.ls.rd);
             result += ", [R" + std::to_string(instr.ls.rn);
 
-            if (instr.ls.pre_indexed) {
-                // Pre-indexed: [Rn, offset]
-                if (instr.ls.offset != 0) {
-                    result += ", #" + std::string(instr.ls.up ? "" : "-") +
-                              std::to_string(instr.ls.offset);
-                }
-                result += "]";
-                if (instr.ls.write_back) {
-                    result += "!";
+            bool is_immediate = instr.ls.immediate == 0;
+            
+            if (is_immediate) {
+                if (instr.ls.pre_indexed) {
+                    // Pre-indexed: [Rn, offset]
+                    if (instr.ls.offset != 0) {
+                        result += ", #" + std::string(instr.ls.up ? "" : "-") +
+                                std::to_string(instr.ls.offset);
+                    }
+                    result += "]";
+                    if (instr.ls.write_back) {
+                        result += "!";
+                    }
+                } else {
+                    // Post-indexed: [Rn], offset
+                    result += "]";
+                    if (instr.ls.offset != 0) {
+                        result += ", #" + std::string(instr.ls.up ? "" : "-") +
+                                std::to_string(instr.ls.offset);
+                    }
                 }
             } else {
-                // Post-indexed: [Rn], offset
-                result += "]";
-                if (instr.ls.offset != 0) {
-                    result += ", #" + std::string(instr.ls.up ? "" : "-") +
-                              std::to_string(instr.ls.offset);
+                std::string offset_reg = "R" + std::to_string(instr.ls_reg.rm);
+                if (instr.ls_reg.shift_imm != 0) {
+                    const char* shift_names[] = {"LSL", "LSR", "ASR", "ROR"};
+                    offset_reg += ", " + std::string(shift_names[instr.ls_reg.shift_type]);
+                    offset_reg += " #" + std::to_string(instr.ls_reg.shift_imm);
                 }
+                if (instr.ls.pre_indexed) {
+                    // Pre-indexed: [Rn, offset]
+                    result += ", " + std::string(instr.ls.up ? "" : "-") +
+                            offset_reg;
+                    result += "]";
+                    if (instr.ls.write_back) {
+                        result += "!";
+                    }
+                } else {
+                    // Post-indexed: [Rn], offset
+                    result += "]";
+                    result += ", " + std::string(instr.ls.up ? "" : "-") +
+                        offset_reg;
+                }       
             }
             return result;
         }

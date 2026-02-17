@@ -306,11 +306,23 @@ ExecutionResult CPU_ExecutionEngine::executeLoadStore(AArch32Instruction instr) 
     ExecutionResult execResult;
     uint32_t rn = instr.ls.rn;
     uint32_t rd = instr.ls.rd;
-    uint32_t offset = instr.ls.offset;
+    uint32_t offset = 0;
 
     // Calculate base address
     uint32_t base = (rn == 15) ? (registers[15] + 8) : registers[rn];
     uint32_t address;
+
+    bool is_immediate = instr.ls.immediate == 0;
+    // Calculate offset
+    if (is_immediate) {
+        offset = instr.ls.offset;
+    } else {
+        // Register offset with optional shift
+        uint32_t rm = instr.ls_reg.rm;
+        uint32_t reg_value = (rm == 15) ? (registers[15] + 8) : registers[rm];
+        bool carry_out;
+        offset = applyShift(reg_value, instr.ls_reg.shift_type, instr.ls_reg.shift_imm, carry_out);
+    }
 
     // Calculate effective address based on addressing mode
     if (instr.ls.pre_indexed) {
@@ -372,7 +384,8 @@ ExecutionResult CPU_ExecutionEngine::executeLoadStore(AArch32Instruction instr) 
         uint32_t new_base = instr.ls.up ? (base + offset) : (base - offset);
         if (rn != 15) { // Don't write back to PC
             registers[rn] = new_base;
-            // Note: Write-back also writes to a register (rn), but we only track the primary write
+            execResult.wroteRegister = true;
+            execResult.registersWritten.insert(rn);
         }
     }
 
