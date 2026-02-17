@@ -386,3 +386,83 @@ TEST_CASE("Divide instructions", "[instruction][decode]") {
         REQUIRE(decodeInstruction(instr) == "SDIVLT R2, R8, R9");
     }
 }
+
+TEST_CASE("Block data transfer instructions (LDM/STM)", "[instruction][decode]") {
+    SECTION("STMIA - store multiple increment after") {
+        // STMIA R13, {R0, R1, R2}
+        uint32_t instr = 0xE88D0007; // STMIA R13, {R0-R2}
+        REQUIRE(decodeInstruction(instr) == "STMIA R13, {R0, R1, R2}");
+    }
+
+    SECTION("LDMIA - load multiple increment after") {
+        // LDMIA R13, {R0, R1}
+        uint32_t instr = 0xE89D0003; // LDMIA R13, {R0-R1}
+        REQUIRE(decodeInstruction(instr) == "LDMIA R13, {R0, R1}");
+    }
+
+    SECTION("STMIA with write-back") {
+        // STMIA R13!, {R0-R7}
+        uint32_t instr = 0xE8AD00FF; // STMIA R13!, {R0-R7}
+        REQUIRE(decodeInstruction(instr) == "STMIA R13!, {R0, R1, R2, R3, R4, R5, R6, R7}");
+    }
+
+    SECTION("LDMIA with write-back (POP)") {
+        // LDMIA R13!, {R0, R1}
+        uint32_t instr = 0xE8BD0003; // LDMIA R13!, {R0, R1}
+        REQUIRE(decodeInstruction(instr) == "LDMIA R13!, {R0, R1}");
+    }
+
+    SECTION("STMDB - store multiple decrement before (PUSH)") {
+        // STMDB R13!, {R0, R1}
+        uint32_t instr = 0xE92D0003; // STMDB R13!, {R0, R1}
+        REQUIRE(decodeInstruction(instr) == "STMDB R13!, {R0, R1}");
+    }
+
+    SECTION("STMDB with multiple registers (PUSH)") {
+        // STMDB R13!, {R4-R11, LR}
+        uint32_t instr = 0xE92D4FF0; // STMDB R13!, {R4-R11, R14}
+        REQUIRE(decodeInstruction(instr) == "STMDB R13!, {R4, R5, R6, R7, R8, R9, R10, R11, R14}");
+    }
+
+    SECTION("LDMIA with PC (POP and return)") {
+        // LDMIA R13!, {R4-R11, PC}
+        uint32_t instr = 0xE8BD8FF0; // LDMIA R13!, {R4-R11, R15}
+        REQUIRE(decodeInstruction(instr) == "LDMIA R13!, {R4, R5, R6, R7, R8, R9, R10, R11, R15}");
+    }
+
+    SECTION("STMIB - store multiple increment before") {
+        // STMIB R5, {R0}
+        uint32_t instr = 0xE9850001; // STMIB R5, {R0}
+        REQUIRE(decodeInstruction(instr) == "STMIB R5, {R0}");
+    }
+
+    SECTION("STMDA - store multiple decrement after") {
+        // STMDA R10, {R1, R3, R5}
+        uint32_t instr = 0xE80A002A; // STMDA R10, {R1, R3, R5}
+        REQUIRE(decodeInstruction(instr) == "STMDA R10, {R1, R3, R5}");
+    }
+
+    SECTION("LDMIB - load multiple increment before") {
+        // LDMIB R4, {R2, R6, R7}
+        uint32_t instr = 0xE99400C4; // LDMIB R4, {R2, R6, R7} (no write-back)
+        REQUIRE(decodeInstruction(instr) == "LDMIB R4, {R2, R6, R7}");
+    }
+
+    SECTION("LDMDB - load multiple decrement before") {
+        // LDMDB R8, {R0, R1, R2}
+        uint32_t instr = 0xE9180007; // LDMDB R8, {R0, R1, R2}
+        REQUIRE(decodeInstruction(instr) == "LDMDB R8, {R0, R1, R2}");
+    }
+
+    SECTION("STMIAEQ - conditional store multiple") {
+        // STMIAEQ R13, {R0}
+        uint32_t instr = 0x088D0001; // STMIAEQ R13, {R0}
+        REQUIRE(decodeInstruction(instr) == "STMIAEQ R13, {R0}");
+    }
+
+    SECTION("LDMIANE - conditional load multiple") {
+        // LDMIANE R13!, {R0, R1, R2}
+        uint32_t instr = 0x18BD0007; // LDMIANE R13!, {R0, R1, R2}
+        REQUIRE(decodeInstruction(instr) == "LDMIANE R13!, {R0, R1, R2}");
+    }
+}

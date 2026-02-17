@@ -1162,3 +1162,121 @@ TEST_CASE("Block Data Transfer - Multiple registers", "[cpu_ee]") {
 
     REQUIRE(cpu.getRegister(13) == 0x3020); // SP += 32 (8 registers)
 }
+
+TEST_CASE("Block Data Transfer - Complete PUSH/POP sequence", "[cpu_ee]") {
+    Memory mem;
+    TestableExecutionEngine cpu(&mem, 0x1000);
+
+    // Set up initial register values
+    cpu.setRegister(0, 0xDEADBEEF);
+    cpu.setRegister(1, 0xCAFEBABE);
+    cpu.setRegister(2, 0x12345678);
+    cpu.setRegister(3, 0x9ABCDEF0);
+    cpu.setRegister(4, 0x11111111);
+    cpu.setRegister(5, 0x22222222);
+    cpu.setRegister(13, 0x4000); // Initialize stack pointer
+
+    uint32_t original_r0 = cpu.getRegister(0);
+    uint32_t original_r1 = cpu.getRegister(1);
+    uint32_t original_r2 = cpu.getRegister(2);
+    uint32_t original_r3 = cpu.getRegister(3);
+    uint32_t original_r4 = cpu.getRegister(4);
+    uint32_t original_r5 = cpu.getRegister(5);
+    uint32_t original_sp = cpu.getRegister(13);
+
+    // Step 1: PUSH {R0-R3} using STMDB SP!, {R0-R3}
+    AArch32Instruction push_r0_r3;
+    push_r0_r3.raw = 0xE92D000F; // STMDB R13!, {R0-R3}
+
+    ExecutionResult result1 = cpu.executeInstruction(push_r0_r3);
+
+    // Verify SP was decremented by 16 (4 registers * 4 bytes)
+    REQUIRE(cpu.getRegister(13) == (original_sp - 16));
+    uint32_t sp_after_push1 = cpu.getRegister(13);
+
+    // Verify values were pushed to stack in correct order (R0 at lowest address)
+    uint32_t stacked_r0 = mem.readByte(sp_after_push1) | (mem.readByte(sp_after_push1 + 1) << 8) |
+                          (mem.readByte(sp_after_push1 + 2) << 16) | (mem.readByte(sp_after_push1 + 3) << 24);
+    uint32_t stacked_r1 = mem.readByte(sp_after_push1 + 4) | (mem.readByte(sp_after_push1 + 5) << 8) |
+                          (mem.readByte(sp_after_push1 + 6) << 16) | (mem.readByte(sp_after_push1 + 7) << 24);
+    uint32_t stacked_r2 = mem.readByte(sp_after_push1 + 8) | (mem.readByte(sp_after_push1 + 9) << 8) |
+                          (mem.readByte(sp_after_push1 + 10) << 16) | (mem.readByte(sp_after_push1 + 11) << 24);
+    uint32_t stacked_r3 = mem.readByte(sp_after_push1 + 12) | (mem.readByte(sp_after_push1 + 13) << 8) |
+                          (mem.readByte(sp_after_push1 + 14) << 16) | (mem.readByte(sp_after_push1 + 15) << 24);
+
+    REQUIRE(stacked_r0 == original_r0);
+    REQUIRE(stacked_r1 == original_r1);
+    REQUIRE(stacked_r2 == original_r2);
+    REQUIRE(stacked_r3 == original_r3);
+    REQUIRE(result1.wroteMemory == true);
+    REQUIRE(result1.wroteRegister == true);
+    REQUIRE(result1.registersWritten.count(13) == 1); // SP was written
+
+    // Step 2: PUSH {R4-R5} using STMDB SP!, {R4-R5}
+    AArch32Instruction push_r4_r5;
+    push_r4_r5.raw = 0xE92D0030; // STMDB R13!, {R4-R5}
+
+    cpu.executeInstruction(push_r4_r5);
+
+    // Verify SP was decremented by another 8 (2 registers * 4 bytes)
+    REQUIRE(cpu.getRegister(13) == (sp_after_push1 - 8));
+    uint32_t sp_after_push2 = cpu.getRegister(13);
+
+    // Step 3: Modify R0-R5 to different values
+    cpu.setRegister(0, 0x00000000);
+    cpu.setRegister(1, 0x00000000);
+    cpu.setRegister(2, 0x00000000);
+    cpu.setRegister(3, 0x00000000);
+    cpu.setRegister(4, 0x00000000);
+    cpu.setRegister(5, 0x00000000);
+
+    // Verify registers were changed
+    REQUIRE(cpu.getRegister(0) == 0);
+    REQUIRE(cpu.getRegister(1) == 0);
+    REQUIRE(cpu.getRegister(2) == 0);
+    REQUIRE(cpu.getRegister(3) == 0);
+    REQUIRE(cpu.getRegister(4) == 0);
+    REQUIRE(cpu.getRegister(5) == 0);
+
+    // Step 4: POP {R4-R5} using LDMIA SP!, {R4-R5}
+    AArch32Instruction pop_r4_r5;
+    pop_r4_r5.raw = 0xE8BD0030; // LDMIA R13!, {R4-R5}
+
+    ExecutionResult result2 = cpu.executeInstruction(pop_r4_r5);
+
+    // Verify R4-R5 were restored
+    REQUIRE(cpu.getRegister(4) == original_r4);
+    REQUIRE(cpu.getRegister(5) == original_r5);
+    REQUIRE(cpu.getRegister(13) == sp_after_push1); // SP back to after first push
+    REQUIRE(result2.wroteRegister == true);
+    REQUIRE(result2.registersWritten.count(4) == 1);
+    REQUIRE(result2.registersWritten.count(5) == 1);
+    REQUIRE(result2.registersWritten.count(13) == 1);
+
+    // Step 5: POP {R0-R3} using LDMIA SP!, {R0-R3}
+    AArch32Instruction pop_r0_r3;
+    pop_r0_r3.raw = 0xE8BD000F; // LDMIA R13!, {R0-R3}
+
+    ExecutionResult result3 = cpu.executeInstruction(pop_r0_r3);
+
+    // Verify R0-R3 were restored to original values
+    REQUIRE(cpu.getRegister(0) == original_r0);
+    REQUIRE(cpu.getRegister(1) == original_r1);
+    REQUIRE(cpu.getRegister(2) == original_r2);
+    REQUIRE(cpu.getRegister(3) == original_r3);
+    REQUIRE(cpu.getRegister(13) == original_sp); // SP back to original
+    REQUIRE(result3.wroteRegister == true);
+    REQUIRE(result3.registersWritten.count(0) == 1);
+    REQUIRE(result3.registersWritten.count(1) == 1);
+    REQUIRE(result3.registersWritten.count(2) == 1);
+    REQUIRE(result3.registersWritten.count(3) == 1);
+
+    // Final verification: All registers restored to original values
+    REQUIRE(cpu.getRegister(0) == original_r0);
+    REQUIRE(cpu.getRegister(1) == original_r1);
+    REQUIRE(cpu.getRegister(2) == original_r2);
+    REQUIRE(cpu.getRegister(3) == original_r3);
+    REQUIRE(cpu.getRegister(4) == original_r4);
+    REQUIRE(cpu.getRegister(5) == original_r5);
+    REQUIRE(cpu.getRegister(13) == original_sp);
+}
