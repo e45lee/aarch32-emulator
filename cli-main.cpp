@@ -73,7 +73,7 @@ void setupConsoleIO(MemoryMappedIO* memory) {
         return !std::cin ? 0xff : 0;
     });
     memory->setReadHandler(CONSOLE_IN_ADDR + 2, [](uint32_t address) -> uint8_t {
-        return !std::cin ?: 0;
+        return !std::cin ? 0xff : 0;
     });
     memory->setReadHandler(CONSOLE_IN_ADDR + 3, [](uint32_t address) -> uint8_t {
         return !std::cin ? 0xff : 0;
