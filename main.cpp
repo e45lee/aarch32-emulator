@@ -114,16 +114,17 @@ int main(int argc, char* argv[]) {
         // Execute instruction if running
         if (state.running && !state.cpu->isHalted()) {
             try {
-                state.cpu->step();
+                ExecutionResult result = state.cpu->step();
+                state.last_written_registers = result.registersWritten;
                 if (state.cpu->isHalted()) {
                     state.running = false;
                     state.status_message = "CPU halted";
-                    screen.PostEvent(ftxui::Event::Custom);                
+                    screen.PostEvent(ftxui::Event::Custom);
                 }
             } catch (const std::exception& e) {
                 state.status_message = std::string("Error: ") + e.what();
                 state.running = false;
-                screen.PostEvent(ftxui::Event::Custom);                
+                screen.PostEvent(ftxui::Event::Custom);
             }
         }
 

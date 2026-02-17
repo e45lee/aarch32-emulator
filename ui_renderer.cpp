@@ -92,8 +92,20 @@ Component createUIRenderer(EmulatorState& state) {
 
         // Display R0-R12 in two columns (7 per column, then 6)
         for (int i = 0; i < 7; i++) {
+            // Highlight in green if register was written in the last instruction
             auto left_reg = text(registers[i]);
-            auto right_reg = i + 7 < 13 ? text(registers[i + 7]) : text("");
+            if (state.last_written_registers.count(i) > 0) {
+                left_reg = left_reg | color(Color::Green) | bold;
+            }
+
+            auto right_reg = text("");
+            if (i + 7 < 13) {
+                right_reg = text(registers[i + 7]);
+                if (state.last_written_registers.count(i + 7) > 0) {
+                    right_reg = right_reg | color(Color::Green) | bold;
+                }
+            }
+
             reg_elements.push_back(hbox({
                 left_reg | size(WIDTH, EQUAL, 18),
                 text(" | "),
@@ -105,13 +117,18 @@ Component createUIRenderer(EmulatorState& state) {
 
         // Display special registers and flags
         for (size_t i = 13; i < registers.size(); i++) {
-            if (registers[i].substr(0, 2) == "PC" ||
-                registers[i].substr(0, 2) == "Fl" ||
-                registers[i].substr(0, 2) == "CP") {
-                reg_elements.push_back(text(registers[i]) | color(Color::Cyan));
-            } else {
-                reg_elements.push_back(text(registers[i]));
+            Element reg_elem = text(registers[i]);
+
+            // Highlight in green if register was written in the last instruction
+            if (state.last_written_registers.count(i) > 0) {
+                reg_elem = reg_elem | color(Color::Green) | bold;
+            } else if (registers[i].substr(0, 2) == "PC" ||
+                       registers[i].substr(0, 2) == "Fl" ||
+                       registers[i].substr(0, 2) == "CP") {
+                reg_elem = reg_elem | color(Color::Cyan);
             }
+
+            reg_elements.push_back(reg_elem);
         }
 
         auto reg_pane = window(text("Registers"),
@@ -307,7 +324,8 @@ Component createEventHandler(Component base, EmulatorState& state, ScreenInterac
         if (event == Event::F6) {
             if (!state.cpu->isHalted()) {
                 try {
-                    state.cpu->step();
+                    ExecutionResult result = state.cpu->step();
+                    state.last_written_registers = result.registersWritten;
                     state.status_message = "Stepped one instruction";
                 } catch (const std::exception& e) {
                     state.status_message = std::string("Error: ") + e.what();
@@ -325,6 +343,7 @@ Component createEventHandler(Component base, EmulatorState& state, ScreenInterac
             state.console_output.clear();
             state.console_input.clear();
             state.console_current_input.clear();
+            state.last_written_registers.clear();
 
             // Reload program (from file if available, otherwise test program)
             if (!state.loaded_filename.empty()) {

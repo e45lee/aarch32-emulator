@@ -12,6 +12,7 @@
 #include <string>
 #include <vector>
 #include <deque>
+#include <set>
 #include "cpu.h"
 #include "mmio.h"
 
@@ -40,6 +41,7 @@ struct EmulatorState {
     std::string loaded_filename = ""; // Filename of loaded binary (empty if test program)
     uint32_t initial_registers[13] = {0}; // Initial values for R0-R12
     bool has_initial_registers[13] = {false}; // Track which registers have custom initial values
+    std::set<int> last_written_registers; // Registers written by the last instruction
 };
 
 /**
