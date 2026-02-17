@@ -676,3 +676,152 @@ TEST_CASE("Data Processing - MOV to PC tracks register write", "[cpu_ee]") {
     REQUIRE(result.wroteMemory == false);
     REQUIRE(result.wroteCPSR == false);
 }
+
+TEST_CASE("Multiply - MUL basic", "[cpu_ee]") {
+    Memory mem;
+    TestableExecutionEngine cpu(&mem, 0x1000);
+
+    cpu.setRegister(1, 6);   // Rm
+    cpu.setRegister(2, 7);   // Rs
+
+    // MUL R0, R1, R2 (R0 = R1 * R2 = 6 * 7 = 42)
+    // Encoding: cccc 0000 000S dddd 0000 ssss 1001 mmmm
+    // 1110 0000 0000 0000 0000 0010 1001 0001
+    AArch32Instruction instr;
+    instr.raw = 0xE0000291; // MUL R0, R1, R2
+
+    uint32_t initial_pc = cpu.getRegister(15);
+    ExecutionResult result = cpu.executeInstruction(instr);
+
+    REQUIRE(cpu.getRegister(0) == 42);
+    REQUIRE(cpu.getRegister(15) == initial_pc);
+    REQUIRE(result.wroteRegister == true);
+    REQUIRE(result.registersWritten.count(0) == 1);
+    REQUIRE(result.wroteMemory == false);
+    REQUIRE(result.wroteCPSR == false); // S bit not set
+}
+
+TEST_CASE("Multiply - MUL with flags", "[cpu_ee]") {
+    Memory mem;
+    TestableExecutionEngine cpu(&mem, 0x1000);
+
+    cpu.setRegister(1, 0);
+    cpu.setRegister(2, 100);
+
+    // MULS R0, R1, R2 (R0 = 0 * 100 = 0, should set Z flag)
+    // S bit = 1
+    AArch32Instruction instr;
+    instr.raw = 0xE0100291; // MULS R0, R1, R2
+
+    uint32_t initial_pc = cpu.getRegister(15);
+    ExecutionResult result = cpu.executeInstruction(instr);
+
+    REQUIRE(cpu.getRegister(0) == 0);
+    REQUIRE((cpu.getCPSR() & (1 << 30)) != 0); // Z flag set
+    REQUIRE(cpu.getRegister(15) == initial_pc);
+    REQUIRE(result.wroteCPSR == true); // S bit is set
+}
+
+TEST_CASE("Multiply - MUL large numbers", "[cpu_ee]") {
+    Memory mem;
+    TestableExecutionEngine cpu(&mem, 0x1000);
+
+    cpu.setRegister(1, 1000);
+    cpu.setRegister(2, 2000);
+
+    // MUL R3, R1, R2 (R3 = 1000 * 2000 = 2000000)
+    AArch32Instruction instr;
+    instr.raw = 0xE0030291; // MUL R3, R1, R2
+
+    uint32_t initial_pc = cpu.getRegister(15);
+    cpu.executeInstruction(instr);
+
+    REQUIRE(cpu.getRegister(3) == 2000000);
+    REQUIRE(cpu.getRegister(15) == initial_pc);
+}
+
+TEST_CASE("Multiply - MLA basic", "[cpu_ee]") {
+    Memory mem;
+    TestableExecutionEngine cpu(&mem, 0x1000);
+
+    cpu.setRegister(1, 5);   // Rm
+    cpu.setRegister(2, 4);   // Rs
+    cpu.setRegister(3, 10);  // Rn (accumulate)
+
+    // MLA R0, R1, R2, R3 (R0 = R1 * R2 + R3 = 5 * 4 + 10 = 30)
+    // A bit = 1
+    AArch32Instruction instr;
+    instr.raw = 0xE0203291; // MLA R0, R1, R2, R3
+
+    uint32_t initial_pc = cpu.getRegister(15);
+    ExecutionResult result = cpu.executeInstruction(instr);
+
+    REQUIRE(cpu.getRegister(0) == 30);
+    REQUIRE(cpu.getRegister(15) == initial_pc);
+    REQUIRE(result.wroteRegister == true);
+    REQUIRE(result.registersWritten.count(0) == 1);
+    REQUIRE(result.wroteMemory == false);
+    REQUIRE(result.wroteCPSR == false); // S bit not set
+}
+
+TEST_CASE("Multiply - MLA with zero accumulate", "[cpu_ee]") {
+    Memory mem;
+    TestableExecutionEngine cpu(&mem, 0x1000);
+
+    cpu.setRegister(1, 12);
+    cpu.setRegister(2, 3);
+    cpu.setRegister(3, 0);
+
+    // MLA R4, R1, R2, R3 (R4 = 12 * 3 + 0 = 36)
+    AArch32Instruction instr;
+    instr.raw = 0xE0243291; // MLA R4, R1, R2, R3
+
+    uint32_t initial_pc = cpu.getRegister(15);
+    cpu.executeInstruction(instr);
+
+    REQUIRE(cpu.getRegister(4) == 36);
+    REQUIRE(cpu.getRegister(15) == initial_pc);
+}
+
+TEST_CASE("Multiply - MLAS with flags", "[cpu_ee]") {
+    Memory mem;
+    TestableExecutionEngine cpu(&mem, 0x1000);
+
+    cpu.setRegister(1, 0);
+    cpu.setRegister(2, 100);
+    cpu.setRegister(3, 0);
+
+    // MLAS R0, R1, R2, R3 (R0 = 0 * 100 + 0 = 0, should set Z flag)
+    // S bit = 1, A bit = 1
+    AArch32Instruction instr;
+    instr.raw = 0xE0303291; // MLAS R0, R1, R2, R3
+
+    uint32_t initial_pc = cpu.getRegister(15);
+    ExecutionResult result = cpu.executeInstruction(instr);
+
+    REQUIRE(cpu.getRegister(0) == 0);
+    REQUIRE((cpu.getCPSR() & (1 << 30)) != 0); // Z flag set
+    REQUIRE(cpu.getRegister(15) == initial_pc);
+    REQUIRE(result.wroteCPSR == true); // S bit is set
+}
+
+TEST_CASE("Multiply - MLA negative result sets N flag", "[cpu_ee]") {
+    Memory mem;
+    TestableExecutionEngine cpu(&mem, 0x1000);
+
+    // Test that results in negative number
+    cpu.setRegister(1, 0xFFFFFFFF); // -1 in two's complement
+    cpu.setRegister(2, 5);
+    cpu.setRegister(3, 0);
+
+    // MLAS R0, R1, R2, R3 (R0 = -1 * 5 + 0 = -5, should set N flag)
+    AArch32Instruction instr;
+    instr.raw = 0xE0303291; // MLAS R0, R1, R2, R3
+
+    uint32_t initial_pc = cpu.getRegister(15);
+    cpu.executeInstruction(instr);
+
+    REQUIRE(cpu.getRegister(0) == (uint32_t)-5);
+    REQUIRE((cpu.getCPSR() & (1 << 31)) != 0); // N flag set (negative result)
+    REQUIRE(cpu.getRegister(15) == initial_pc);
+}

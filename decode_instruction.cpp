@@ -16,6 +16,25 @@ std::string decodeInstruction(uint32_t raw_instruction) {
 
     std::string cond_suffix = cond_names[instr.common.cond];
 
+    // Check for MUL/MLA instruction (special case within kind 00)
+    if (instr.common.kind == 0b00 &&
+        instr.mul.fixed000000 == 0b000000 &&
+        instr.mul.fixed1001 == 0b1001) {
+        // MUL or MLA instruction
+        std::string result = instr.mul.a ? "MLA" : "MUL";
+        result += cond_suffix;
+        if (instr.mul.s) {
+            result += "S";
+        }
+        result += " R" + std::to_string(instr.mul.rd);
+        result += ", R" + std::to_string(instr.mul.rm);
+        result += ", R" + std::to_string(instr.mul.rs);
+        if (instr.mul.a) {
+            result += ", R" + std::to_string(instr.mul.rn);
+        }
+        return result;
+    }
+
     // Check for BX/BLX instruction (special case within kind 00)
     if (instr.common.kind == 0b00 &&
         instr.bx.op == 0b010 &&

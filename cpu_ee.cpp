@@ -76,10 +76,14 @@ ExecutionResult CPU_ExecutionEngine::executeInstruction(AArch32Instruction instr
 
     // Decode and execute the instruction based on its type
     if (instr.common.kind == 0b00) {
+        // Check for multiply instruction (special encoding within data processing space)
+        if (instr.mul.fixed000000 == 0b000000 && instr.mul.fixed1001 == 0b1001) {
+            result = executeMultiply(instr);
+        }
         // Check for branch and exchange (special encoding within data processing space)
         // BX encoding: cccc 0001 0010 1111 1111 1111 0001 Rm
         // Check bits 27-4 (ignoring condition and Rm)
-        if (instr.common.kind == 0b00 &&
+        else if (instr.common.kind == 0b00 &&
             instr.bx.op == 0b010 &&
             instr.bx.op0 == 0b01 &&
             instr.bx.b20zero == 0 &&
@@ -437,7 +441,50 @@ ExecutionResult CPU_ExecutionEngine::executeBranchExchange(AArch32Instruction in
     execResult.registersWritten.insert(15);
 
     return execResult;
-} 
+}
+
+ExecutionResult CPU_ExecutionEngine::executeMultiply(AArch32Instruction instr) {
+    ExecutionResult execResult;
+
+    // Get operands
+    uint32_t rm = registers[instr.mul.rm];
+    uint32_t rs = registers[instr.mul.rs];
+    uint32_t rn = registers[instr.mul.rn];
+
+    // Compute result
+    uint32_t result;
+    if (instr.mul.a) {
+        // MLA: Multiply-accumulate (Rd = Rm * Rs + Rn)
+        result = rm * rs + rn;
+    } else {
+        // MUL: Multiply (Rd = Rm * Rs)
+        result = rm * rs;
+    }
+
+    // Write result to destination register
+    registers[instr.mul.rd] = result;
+    execResult.wroteRegister = true;
+    execResult.registersWritten.insert(instr.mul.rd);
+
+    // Update flags if S bit is set
+    if (instr.mul.s) {
+        // Update N and Z flags
+        bool N = (result >> 31) & 1;
+        bool Z = (result == 0);
+
+        // C flag is UNPREDICTABLE after multiply
+        // V flag is UNPREDICTABLE after multiply
+        // We'll preserve existing C and V flags
+        bool C = (cpsr >> 29) & 1;
+        bool V = (cpsr >> 28) & 1;
+
+        // Update CPSR
+        cpsr = (N << 31) | (Z << 30) | (C << 29) | (V << 28) | (cpsr & 0x0FFFFFFF);
+        execResult.wroteCPSR = true;
+    }
+
+    return execResult;
+}
 
 uint32_t CPU_ExecutionEngine::getRegister(int reg) const { 
     return registers[reg]; 

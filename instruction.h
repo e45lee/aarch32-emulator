@@ -98,6 +98,19 @@ union AArch32Instruction {
         uint32_t cond : 4;
     } bx;
 
+    // Multiply instructions (MUL, MLA)
+    struct {
+        uint32_t rm : 4;       // Multiplier
+        uint32_t fixed1001 : 4; // Should be 0b1001
+        uint32_t rs : 4;        // Multiplicand
+        uint32_t rn : 4;        // Accumulate register (for MLA)
+        uint32_t rd : 4;        // Destination
+        uint32_t s : 1;         // Set flags
+        uint32_t a : 1;         // Accumulate bit (0=MUL, 1=MLA)
+        uint32_t fixed000000 : 6; // Should be 0b000000
+        uint32_t cond : 4;
+    } mul;
+
     // Common fields accessible from any instruction
     struct {
         uint32_t low_bits : 26;

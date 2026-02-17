@@ -53,6 +53,7 @@ private:
     ExecutionResult executeLoadStore(AArch32Instruction instr);
     ExecutionResult executeBranch(AArch32Instruction instr);
     ExecutionResult executeBranchExchange(AArch32Instruction instr);
+    ExecutionResult executeMultiply(AArch32Instruction instr);
 
     // Helper methods
     uint32_t applyShift(uint32_t value, uint32_t shift_type, uint32_t shift_amount, bool& carry_out);
