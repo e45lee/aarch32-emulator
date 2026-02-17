@@ -286,3 +286,103 @@ TEST_CASE("Edge cases and special instructions", "[instruction][decode]") {
         REQUIRE(decodeInstruction(instr) == "BIC R4, R5, R6");
     }
 }
+
+TEST_CASE("Multiply instructions", "[instruction][decode]") {
+    SECTION("MUL - basic multiply") {
+        // MUL R0, R1, R2
+        uint32_t instr = 0xE0000291; // MUL R0, R1, R2
+        REQUIRE(decodeInstruction(instr) == "MUL R0, R1, R2");
+    }
+
+    SECTION("MULS - multiply with flags") {
+        // MULS R0, R1, R2
+        uint32_t instr = 0xE0100291; // MULS R0, R1, R2
+        REQUIRE(decodeInstruction(instr) == "MULS R0, R1, R2");
+    }
+
+    SECTION("MUL with different registers") {
+        // MUL R3, R4, R5
+        uint32_t instr = 0xE0030594; // MUL R3, R4, R5
+        REQUIRE(decodeInstruction(instr) == "MUL R3, R4, R5");
+    }
+
+    SECTION("MLA - multiply-accumulate") {
+        // MLA R0, R1, R2, R3
+        uint32_t instr = 0xE0203291; // MLA R0, R1, R2, R3
+        REQUIRE(decodeInstruction(instr) == "MLA R0, R1, R2, R3");
+    }
+
+    SECTION("MLAS - multiply-accumulate with flags") {
+        // MLAS R0, R1, R2, R3
+        uint32_t instr = 0xE0303291; // MLAS R0, R1, R2, R3
+        REQUIRE(decodeInstruction(instr) == "MLAS R0, R1, R2, R3");
+    }
+
+    SECTION("MLA with different registers") {
+        // MLA R4, R1, R2, R3
+        uint32_t instr = 0xE0243291; // MLA R4, R1, R2, R3
+        REQUIRE(decodeInstruction(instr) == "MLA R4, R1, R2, R3");
+    }
+
+    SECTION("MULEQ - multiply with equal condition") {
+        // MULEQ R0, R1, R2
+        uint32_t instr = 0x00000291; // MULEQ R0, R1, R2
+        REQUIRE(decodeInstruction(instr) == "MULEQ R0, R1, R2");
+    }
+
+    SECTION("MLANE - multiply-accumulate with not equal condition") {
+        // MLANE R0, R1, R2, R3
+        uint32_t instr = 0x10203291; // MLANE R0, R1, R2, R3
+        REQUIRE(decodeInstruction(instr) == "MLANE R0, R1, R2, R3");
+    }
+}
+
+TEST_CASE("Divide instructions", "[instruction][decode]") {
+    SECTION("UDIV - unsigned divide") {
+        // UDIV R0, R1, R2
+        uint32_t instr = 0xE730F211; // UDIV R0, R1, R2
+        REQUIRE(decodeInstruction(instr) == "UDIV R0, R1, R2");
+    }
+
+    SECTION("SDIV - signed divide") {
+        // SDIV R0, R1, R2
+        uint32_t instr = 0xE710F211; // SDIV R0, R1, R2
+        REQUIRE(decodeInstruction(instr) == "SDIV R0, R1, R2");
+    }
+
+    SECTION("UDIV with different registers") {
+        // UDIV R4, R3, R6
+        uint32_t instr = 0xE734F613; // UDIV R4, R3, R6
+        REQUIRE(decodeInstruction(instr) == "UDIV R4, R3, R6");
+    }
+
+    SECTION("SDIV with different registers") {
+        // SDIV R4, R3, R5
+        uint32_t instr = 0xE714F513; // SDIV R4, R3, R5
+        REQUIRE(decodeInstruction(instr) == "SDIV R4, R3, R5");
+    }
+
+    SECTION("UDIVEQ - unsigned divide with equal condition") {
+        // UDIVEQ R0, R1, R2
+        uint32_t instr = 0x0730F211; // UDIVEQ R0, R1, R2
+        REQUIRE(decodeInstruction(instr) == "UDIVEQ R0, R1, R2");
+    }
+
+    SECTION("SDIVNE - signed divide with not equal condition") {
+        // SDIVNE R0, R1, R2
+        uint32_t instr = 0x1710F211; // SDIVNE R0, R1, R2
+        REQUIRE(decodeInstruction(instr) == "SDIVNE R0, R1, R2");
+    }
+
+    SECTION("UDIVGT - unsigned divide with greater than condition") {
+        // UDIVGT R5, R6, R7
+        uint32_t instr = 0xC735F716; // UDIVGT R5, R6, R7
+        REQUIRE(decodeInstruction(instr) == "UDIVGT R5, R6, R7");
+    }
+
+    SECTION("SDIVLT - signed divide with less than condition") {
+        // SDIVLT R2, R8, R9
+        uint32_t instr = 0xB712F918; // SDIVLT R2, R8, R9
+        REQUIRE(decodeInstruction(instr) == "SDIVLT R2, R8, R9");
+    }
+}

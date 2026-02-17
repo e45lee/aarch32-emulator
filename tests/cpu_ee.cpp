@@ -825,3 +825,161 @@ TEST_CASE("Multiply - MLA negative result sets N flag", "[cpu_ee]") {
     REQUIRE((cpu.getCPSR() & (1 << 31)) != 0); // N flag set (negative result)
     REQUIRE(cpu.getRegister(15) == initial_pc);
 }
+
+TEST_CASE("Divide - UDIV basic", "[cpu_ee]") {
+    Memory mem;
+    TestableExecutionEngine cpu(&mem, 0x1000);
+
+    cpu.setRegister(1, 42);  // Dividend
+    cpu.setRegister(2, 7);   // Divisor
+
+    // UDIV R0, R1, R2 (R0 = R1 / R2 = 42 / 7 = 6)
+    // Encoding: cccc 0111 0011 dddd 1111 mmmm 0001 nnnn
+    // 1110 0111 0011 0000 1111 0010 0001 0001
+    AArch32Instruction instr;
+    instr.raw = 0xE730F211; // UDIV R0, R1, R2
+
+    uint32_t initial_pc = cpu.getRegister(15);
+    ExecutionResult result = cpu.executeInstruction(instr);
+
+    REQUIRE(cpu.getRegister(0) == 6);
+    REQUIRE(cpu.getRegister(15) == initial_pc);
+    REQUIRE(result.wroteRegister == true);
+    REQUIRE(result.registersWritten.count(0) == 1);
+    REQUIRE(result.wroteMemory == false);
+    REQUIRE(result.wroteCPSR == false); // Division does not update flags
+}
+
+TEST_CASE("Divide - UDIV with remainder", "[cpu_ee]") {
+    Memory mem;
+    TestableExecutionEngine cpu(&mem, 0x1000);
+
+    cpu.setRegister(1, 100);  // Dividend
+    cpu.setRegister(2, 7);    // Divisor
+
+    // UDIV R0, R1, R2 (R0 = 100 / 7 = 14, remainder discarded)
+    AArch32Instruction instr;
+    instr.raw = 0xE730F211; // UDIV R0, R1, R2
+
+    uint32_t initial_pc = cpu.getRegister(15);
+    cpu.executeInstruction(instr);
+
+    REQUIRE(cpu.getRegister(0) == 14);
+    REQUIRE(cpu.getRegister(15) == initial_pc);
+}
+
+TEST_CASE("Divide - UDIV by zero", "[cpu_ee]") {
+    Memory mem;
+    TestableExecutionEngine cpu(&mem, 0x1000);
+
+    cpu.setRegister(1, 100);  // Dividend
+    cpu.setRegister(2, 0);    // Divisor (zero)
+
+    // UDIV R0, R1, R2 (R0 = 100 / 0 = 0, result is UNPREDICTABLE)
+    AArch32Instruction instr;
+    instr.raw = 0xE730F211; // UDIV R0, R1, R2
+
+    uint32_t initial_pc = cpu.getRegister(15);
+    cpu.executeInstruction(instr);
+
+    // Division by zero returns 0 in our implementation
+    REQUIRE(cpu.getRegister(0) == 0);
+    REQUIRE(cpu.getRegister(15) == initial_pc);
+}
+
+TEST_CASE("Divide - SDIV basic positive", "[cpu_ee]") {
+    Memory mem;
+    TestableExecutionEngine cpu(&mem, 0x1000);
+
+    cpu.setRegister(1, 42);   // Dividend
+    cpu.setRegister(2, 7);    // Divisor
+
+    // SDIV R0, R1, R2 (R0 = R1 / R2 = 42 / 7 = 6)
+    // Encoding: cccc 0111 0001 dddd 1111 mmmm 0001 nnnn
+    // 1110 0111 0001 0000 1111 0010 0001 0001
+    AArch32Instruction instr;
+    instr.raw = 0xE710F211; // SDIV R0, R1, R2
+
+    uint32_t initial_pc = cpu.getRegister(15);
+    ExecutionResult result = cpu.executeInstruction(instr);
+
+    REQUIRE(cpu.getRegister(0) == 6);
+    REQUIRE(cpu.getRegister(15) == initial_pc);
+    REQUIRE(result.wroteRegister == true);
+    REQUIRE(result.registersWritten.count(0) == 1);
+    REQUIRE(result.wroteMemory == false);
+    REQUIRE(result.wroteCPSR == false); // Division does not update flags
+}
+
+TEST_CASE("Divide - SDIV negative dividend", "[cpu_ee]") {
+    Memory mem;
+    TestableExecutionEngine cpu(&mem, 0x1000);
+
+    cpu.setRegister(1, (uint32_t)-42); // -42 as two's complement
+    cpu.setRegister(2, 7);
+
+    // SDIV R0, R1, R2 (R0 = -42 / 7 = -6)
+    AArch32Instruction instr;
+    instr.raw = 0xE710F211; // SDIV R0, R1, R2
+
+    uint32_t initial_pc = cpu.getRegister(15);
+    cpu.executeInstruction(instr);
+
+    REQUIRE(cpu.getRegister(0) == (uint32_t)-6);
+    REQUIRE(cpu.getRegister(15) == initial_pc);
+}
+
+TEST_CASE("Divide - SDIV negative divisor", "[cpu_ee]") {
+    Memory mem;
+    TestableExecutionEngine cpu(&mem, 0x1000);
+
+    cpu.setRegister(1, 42);
+    cpu.setRegister(2, (uint32_t)-7); // -7 as two's complement
+
+    // SDIV R0, R1, R2 (R0 = 42 / -7 = -6)
+    AArch32Instruction instr;
+    instr.raw = 0xE710F211; // SDIV R0, R1, R2
+
+    uint32_t initial_pc = cpu.getRegister(15);
+    cpu.executeInstruction(instr);
+
+    REQUIRE(cpu.getRegister(0) == (uint32_t)-6);
+    REQUIRE(cpu.getRegister(15) == initial_pc);
+}
+
+TEST_CASE("Divide - SDIV both negative", "[cpu_ee]") {
+    Memory mem;
+    TestableExecutionEngine cpu(&mem, 0x1000);
+
+    cpu.setRegister(1, (uint32_t)-42); // -42 as two's complement
+    cpu.setRegister(2, (uint32_t)-7);  // -7 as two's complement
+
+    // SDIV R0, R1, R2 (R0 = -42 / -7 = 6)
+    AArch32Instruction instr;
+    instr.raw = 0xE710F211; // SDIV R0, R1, R2
+
+    uint32_t initial_pc = cpu.getRegister(15);
+    cpu.executeInstruction(instr);
+
+    REQUIRE(cpu.getRegister(0) == 6);
+    REQUIRE(cpu.getRegister(15) == initial_pc);
+}
+
+TEST_CASE("Divide - SDIV by zero", "[cpu_ee]") {
+    Memory mem;
+    TestableExecutionEngine cpu(&mem, 0x1000);
+
+    cpu.setRegister(1, 100);  // Dividend
+    cpu.setRegister(2, 0);    // Divisor (zero)
+
+    // SDIV R0, R1, R2 (R0 = 100 / 0 = 0, result is UNPREDICTABLE)
+    AArch32Instruction instr;
+    instr.raw = 0xE710F211; // SDIV R0, R1, R2
+
+    uint32_t initial_pc = cpu.getRegister(15);
+    cpu.executeInstruction(instr);
+
+    // Division by zero returns 0 in our implementation
+    REQUIRE(cpu.getRegister(0) == 0);
+    REQUIRE(cpu.getRegister(15) == initial_pc);
+}

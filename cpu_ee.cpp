@@ -95,8 +95,15 @@ ExecutionResult CPU_ExecutionEngine::executeInstruction(AArch32Instruction instr
             result = executeDataProcessing(instr);
         }
     } else if (instr.common.kind == 0b01) {
-        // Handle load/store instructions
-        result = executeLoadStore(instr);
+        // Check for divide instruction (special encoding within load/store space)
+        if (instr.div.fixed110 == 0b110 &&
+            instr.div.fixed1111 == 0b1111 &&
+            instr.div.fixed0001 == 0b0001) {
+            result = executeDivide(instr);
+        } else {
+            // Handle load/store instructions
+            result = executeLoadStore(instr);
+        }
     } else if (instr.common.kind == 0b10) {
         // Handle branch instructions
         result = executeBranch(instr);
@@ -486,8 +493,41 @@ ExecutionResult CPU_ExecutionEngine::executeMultiply(AArch32Instruction instr) {
     return execResult;
 }
 
-uint32_t CPU_ExecutionEngine::getRegister(int reg) const { 
-    return registers[reg]; 
+ExecutionResult CPU_ExecutionEngine::executeDivide(AArch32Instruction instr) {
+    ExecutionResult execResult;
+
+    // Get operands
+    uint32_t rn = registers[instr.div.rn]; // Dividend
+    uint32_t rm = registers[instr.div.rm]; // Divisor
+
+    // Compute result
+    uint32_t result;
+    if (rm == 0) {
+        // Division by zero: result is UNPREDICTABLE per ARM spec
+        // We return 0 as is common in many implementations
+        result = 0;
+    } else if (instr.div.op == 0b001) {
+        // SDIV: Signed divide (Rd = Rn / Rm)
+        int32_t signed_dividend = static_cast<int32_t>(rn);
+        int32_t signed_divisor = static_cast<int32_t>(rm);
+        result = static_cast<uint32_t>(signed_dividend / signed_divisor);
+    } else {
+        // UDIV: Unsigned divide (Rd = Rn / Rm)
+        result = rn / rm;
+    }
+
+    // Write result to destination register
+    registers[instr.div.rd] = result;
+    execResult.wroteRegister = true;
+    execResult.registersWritten.insert(instr.div.rd);
+
+    // Division instructions do not update flags
+
+    return execResult;
+}
+
+uint32_t CPU_ExecutionEngine::getRegister(int reg) const {
+    return registers[reg];
 }
 
 uint32_t CPU_ExecutionEngine::getCPSR() const {

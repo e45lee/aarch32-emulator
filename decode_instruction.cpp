@@ -16,6 +16,20 @@ std::string decodeInstruction(uint32_t raw_instruction) {
 
     std::string cond_suffix = cond_names[instr.common.cond];
 
+    // Check for SDIV/UDIV instruction (special case within kind 01)
+    if (instr.common.kind == 0b01 &&
+        instr.div.fixed110 == 0b110 &&
+        instr.div.fixed1111 == 0b1111 &&
+        instr.div.fixed0001 == 0b0001) {
+        // SDIV or UDIV instruction
+        std::string result = (instr.div.op == 0b001) ? "SDIV" : "UDIV";
+        result += cond_suffix;
+        result += " R" + std::to_string(instr.div.rd);
+        result += ", R" + std::to_string(instr.div.rn);
+        result += ", R" + std::to_string(instr.div.rm);
+        return result;
+    }
+
     // Check for MUL/MLA instruction (special case within kind 00)
     if (instr.common.kind == 0b00 &&
         instr.mul.fixed000000 == 0b000000 &&

@@ -111,6 +111,19 @@ union AArch32Instruction {
         uint32_t cond : 4;
     } mul;
 
+    // Divide instructions (SDIV, UDIV)
+    struct {
+        uint32_t rn : 4;        // Dividend
+        uint32_t fixed0001 : 4; // Should be 0b0001
+        uint32_t rm : 4;        // Divisor
+        uint32_t fixed1111 : 4; // Should be 0b1111
+        uint32_t rd : 4;        // Destination
+        uint32_t op : 3;        // 001 for SDIV, 011 for UDIV
+        uint32_t fixed110 : 3;  // Should be 0b110
+        uint32_t kind : 2;      // Should be 0b01
+        uint32_t cond : 4;
+    } div;
+
     // Common fields accessible from any instruction
     struct {
         uint32_t low_bits : 26;
