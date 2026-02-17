@@ -216,6 +216,34 @@ TEST_CASE("Load/Store - STR word", "[cpu_ee]") {
     REQUIRE(result.wroteCPSR == false);
 }
 
+TEST_CASE("Load/Store - LDR word shifted", "[cpu_ee]") {
+    Memory mem;
+    TestableExecutionEngine cpu(&mem, 0x1000);
+
+    // Set up memory with test data (little-endian)
+    mem.writeByte(0x2000, 0xAA);
+    mem.writeByte(0x2001, 0xBB);
+    mem.writeByte(0x2002, 0xCC);
+    mem.writeByte(0x2003, 0xDD);
+    mem.writeByte(0x2004, 0xEE);
+
+    cpu.setRegister(1, 0x2000); // Base address
+
+    // LDR R0, [R1, R2, LSL #2] - Load from address R1 + (R2 << 2)
+    cpu.setRegister(2, 1); // R2 = 1, so offset = 4
+    AArch32Instruction instr;
+    instr.raw = 0xE7910002; // LDR R0, [R1, R2, LSL #2]
+
+    uint32_t initial_pc = cpu.getRegister(15);
+    ExecutionResult result = cpu.executeInstruction(instr);
+    REQUIRE(cpu.getRegister(0) == 0xEEDDCCBB);
+    REQUIRE(cpu.getRegister(15) == initial_pc); // PC should not change for non-branch instructions
+    REQUIRE(result.wroteRegister == true);
+    REQUIRE(result.registersWritten.count(0) == 1);
+    REQUIRE(result.wroteMemory == false);
+    REQUIRE(result.wroteCPSR == false);
+}
+
 TEST_CASE("Load/Store - LDR word", "[cpu_ee]") {
     Memory mem;
     TestableExecutionEngine cpu(&mem, 0x1000);
@@ -297,13 +325,15 @@ TEST_CASE("Load/Store - Pre-indexed with write-back", "[cpu_ee]") {
     instr.raw = 0xE5A10008; // STR R0, [R1, #8]!
 
     uint32_t initial_pc = cpu.getRegister(15);
-    cpu.executeInstruction(instr);
+    ExecutionResult result = cpu.executeInstruction(instr);
 
     // Check the data was written to R1+8
     REQUIRE(mem.readByte(0x5008) == 0x44);
 
     // Check that R1 was updated (write-back)
     REQUIRE(cpu.getRegister(1) == 0x5008);
+    REQUIRE(result.wroteRegister == true);
+    REQUIRE(result.registersWritten.count(1) == 1);
     REQUIRE(cpu.getRegister(15) == initial_pc); // PC should not change for non-branch instructions
 }
 
@@ -319,12 +349,14 @@ TEST_CASE("Load/Store - Post-indexed", "[cpu_ee]") {
     instr.raw = 0xE481000C; // STR R0, [R1], #12
 
     uint32_t initial_pc = cpu.getRegister(15);
-    cpu.executeInstruction(instr);
+    ExecutionResult result = cpu.executeInstruction(instr);
 
     // Data should be written to original R1 address
     REQUIRE(mem.readByte(0x6000) == 0xDD);
 
     // R1 should be updated after the store
+    REQUIRE(result.wroteRegister == true);
+    REQUIRE(result.registersWritten.count(1) == 1);
     REQUIRE(cpu.getRegister(1) == 0x600C);
     REQUIRE(cpu.getRegister(15) == initial_pc); // PC should not change for non-branch instructions
 }
