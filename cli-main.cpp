@@ -71,17 +71,12 @@ void setupConsoleIO(MemoryMappedIO* memory) {
     });
 
     // Console status handler
-    // Bit 0: has input available
-    // Bit 1: can output (always true for stdout)
+    // Returns 1 if EOF, 0 if input available
     memory->setReadHandler(CONSOLE_STATUS_ADDR, [](uint32_t address) -> uint8_t {
-        uint8_t status = 0x02; // Can always output
-
-        // Check if input is available (peek at stdin)
-        if (std::cin.rdbuf()->in_avail() > 0) {
-            status |= 0x01; // Has input
-        }
-
-        return status;
+        // Use peek() to check if we can read without consuming
+        // peek() returns EOF when at end of stream
+        int next_char = std::cin.peek();
+        return (next_char == EOF) ? 1 : 0;
     });
 }
 

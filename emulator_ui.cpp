@@ -176,10 +176,6 @@ void setupConsoleIO(EmulatorState& state) {
     // Console status handler
     state.memory->setReadHandler(CONSOLE_STATUS_ADDR, [&state](uint32_t addr) -> uint8_t {
         uint8_t status = 0;
-        if (!state.console_input.empty()) {
-            status |= 0x01; // Has input
-        }
-        status |= 0x02; // Can always output
         return status;
     });
 }
