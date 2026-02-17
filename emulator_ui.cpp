@@ -172,6 +172,15 @@ void setupConsoleIO(EmulatorState& state) {
         }
         return 0;
     });
+    state.memory->setReadHandler(CONSOLE_IN_ADDR + 1, [](uint32_t address) -> uint8_t {
+        return 0;
+    });
+    state.memory->setReadHandler(CONSOLE_IN_ADDR + 2, [](uint32_t address) -> uint8_t {
+        return 0;
+    });
+    state.memory->setReadHandler(CONSOLE_IN_ADDR + 3, [](uint32_t address) -> uint8_t {
+        return 0;
+    });
 
     // Console status handler
     state.memory->setReadHandler(CONSOLE_STATUS_ADDR, [&state](uint32_t addr) -> uint8_t {

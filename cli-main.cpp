@@ -61,22 +61,30 @@ void setupConsoleIO(MemoryMappedIO* memory) {
     // Console input handler - read from stdin
     memory->setReadHandler(CONSOLE_IN_ADDR, [](uint32_t address) -> uint8_t {
         if (std::cin.eof()) {
-            return 0;
+            return 0xff;
         }
         char c;
         if (std::cin.get(c)) {
             return static_cast<uint8_t>(c);
         }
-        return 0;
+        return 0xff;
+    });
+    memory->setReadHandler(CONSOLE_IN_ADDR + 1, [](uint32_t address) -> uint8_t {
+        return !std::cin ? 0xff : 0;
+    });
+    memory->setReadHandler(CONSOLE_IN_ADDR + 2, [](uint32_t address) -> uint8_t {
+        return !std::cin ?: 0;
+    });
+    memory->setReadHandler(CONSOLE_IN_ADDR + 3, [](uint32_t address) -> uint8_t {
+        return !std::cin ? 0xff : 0;
     });
 
     // Console status handler
-    // Returns 1 if EOF, 0 if input available
+    // Returns 1 if EOF/Bad, 0 if input available
     memory->setReadHandler(CONSOLE_STATUS_ADDR, [](uint32_t address) -> uint8_t {
         // Use peek() to check if we can read without consuming
         // peek() returns EOF when at end of stream
-        int next_char = std::cin.peek();
-        return (next_char == EOF) ? 1 : 0;
+        return !std::cin ? 0x01 : 0x00;
     });
 }
 
