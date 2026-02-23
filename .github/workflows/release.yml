@@ -1,0 +1,84 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            os_name: linux
+            c_compiler: gcc
+            cpp_compiler: g++
+            binary_dir: build
+            binary_ext: ""
+          - os: macos-latest
+            os_name: macos
+            c_compiler: clang
+            cpp_compiler: clang++
+            binary_dir: build
+            binary_ext: ""
+          - os: windows-latest
+            os_name: windows
+            c_compiler: cl
+            cpp_compiler: cl
+            binary_dir: build/Release
+            binary_ext: ".exe"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure CMake
+        run: >
+          cmake -B build
+          -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }}
+          -DCMAKE_C_COMPILER=${{ matrix.c_compiler }}
+          -DCMAKE_BUILD_TYPE=Release
+          -S ${{ github.workspace }}
+
+      - name: Build
+        run: cmake --build build --config Release
+
+      - name: Test
+        working-directory: build
+        run: ctest --build-config Release
+
+      - name: Collect binaries
+        shell: bash
+        run: |
+          mkdir dist
+          cp "${{ matrix.binary_dir }}/aarch32-emulator-ui${{ matrix.binary_ext }}" \
+             "dist/aarch32-emulator-ui-${{ matrix.os_name }}${{ matrix.binary_ext }}"
+          cp "${{ matrix.binary_dir }}/aarch32-cli${{ matrix.binary_ext }}" \
+             "dist/aarch32-cli-${{ matrix.os_name }}${{ matrix.binary_ext }}"
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: binaries-${{ matrix.os_name }}
+          path: dist/
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          generate_release_notes: true

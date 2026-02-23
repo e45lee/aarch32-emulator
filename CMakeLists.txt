@@ -30,7 +30,6 @@ set(TESTS tests/memory.cpp tests/mmio.cpp tests/decode_instruction.cpp tests/cpu
 
 # Build the main executable
 add_executable(aarch32-emulator-ui ui-main.cpp ${SOURCES} ${UI_SOURCES})
-target_compile_options (aarch32-emulator-ui PUBLIC -fexceptions -frtti)
 target_link_libraries(aarch32-emulator-ui
   PRIVATE ftxui::screen
   PRIVATE ftxui::dom
@@ -39,10 +38,8 @@ target_link_libraries(aarch32-emulator-ui
 
 # Build the CLI executable (no UI, uses stdin/stdout)
 add_executable(aarch32-cli cli-main.cpp ${SOURCES})
-target_compile_options (aarch32-cli PUBLIC -fexceptions -frtti)
 
 # And the tests
 add_executable(aarch32-emulator-tests ${SOURCES} ${TESTS})
-target_compile_options (aarch32-emulator-tests PUBLIC -fexceptions -frtti)
 target_link_libraries(aarch32-emulator-tests PRIVATE Catch2::Catch2WithMain)
 catch_discover_tests(aarch32-emulator-tests)
