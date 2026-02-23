@@ -366,10 +366,7 @@ ExecutionResult CPU_ExecutionEngine::executeLoadStore(AArch32Instruction instr) 
             }
         } else {
             // Load word
-            uint32_t value = 0;
-            for (int i = 0; i < 4; i++) {
-                value |= ((uint32_t)memory->readByte(address + i)) << (i * 8);
-            }
+            uint32_t value = memory->readWord(address);
             if (rd == 15) {
                 wrotePC = true;
                 newPC = value & ~3;
@@ -389,9 +386,7 @@ ExecutionResult CPU_ExecutionEngine::executeLoadStore(AArch32Instruction instr) 
             memory->writeByte(address, value & 0xFF);
         } else {
             // Store word
-            for (int i = 0; i < 4; i++) {
-                memory->writeByte(address + i, (value >> (i * 8)) & 0xFF);
-            }
+            memory->writeWord(address, value);
         }
     }
 
@@ -574,10 +569,7 @@ ExecutionResult CPU_ExecutionEngine::executeBlockDataTransfer(AArch32Instruction
         if (register_list & (1 << i)) {
             if (instr.ldm_stm.load) {
                 // LDM: Load register from memory
-                uint32_t value = 0;
-                for (int j = 0; j < 4; j++) {
-                    value |= ((uint32_t)memory->readByte(current_address + j)) << (j * 8);
-                }
+                uint32_t value = memory->readWord(current_address);
 
                 if (i == 15) {
                     // Loading PC
@@ -592,9 +584,7 @@ ExecutionResult CPU_ExecutionEngine::executeBlockDataTransfer(AArch32Instruction
             } else {
                 // STM: Store register to memory
                 uint32_t value = (i == 15) ? (registers[15] + 8) : registers[i];
-                for (int j = 0; j < 4; j++) {
-                    memory->writeByte(current_address + j, (value >> (j * 8)) & 0xFF);
-                }
+                memory->writeWord(current_address, value);
 
                 execResult.wroteMemory = true;
                 execResult.memoryAddress = current_address;

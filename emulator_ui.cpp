@@ -146,7 +146,7 @@ std::vector<std::string> getRegisterView(EmulatorState& state) {
 
 void setupConsoleIO(EmulatorState& state) {
     // Console output handler
-    state.memory->setWriteHandler(CONSOLE_OUT_ADDR, [&state](uint32_t addr, uint8_t value) {
+    state.memory->setWriteHandlerB(CONSOLE_OUT_ADDR, [&state](uint32_t addr, uint8_t value) {
         if (value == '\n') {
             state.console_output.push_back("");
         } else if (!state.console_output.empty()) {
@@ -162,28 +162,20 @@ void setupConsoleIO(EmulatorState& state) {
     });
 
     // Console input handler
-    state.memory->setReadHandler(CONSOLE_IN_ADDR, [&state](uint32_t addr) -> uint8_t {
+    state.memory->setReadHandlerW(CONSOLE_IN_ADDR, [&state](uint32_t addr) -> uint32_t {
         if (!state.console_input.empty()) {
             char c = state.console_input.front();
             state.console_input.pop_front();
-            return static_cast<uint8_t>(c);
+            return static_cast<uint32_t>(c);
         } else {
             throw NoInputException();
         }
-        return 0;
-    });
-    state.memory->setReadHandler(CONSOLE_IN_ADDR + 1, [](uint32_t address) -> uint8_t {
-        return 0;
-    });
-    state.memory->setReadHandler(CONSOLE_IN_ADDR + 2, [](uint32_t address) -> uint8_t {
-        return 0;
-    });
-    state.memory->setReadHandler(CONSOLE_IN_ADDR + 3, [](uint32_t address) -> uint8_t {
-        return 0;
+        return -1;
     });
 
+
     // Console status handler
-    state.memory->setReadHandler(CONSOLE_STATUS_ADDR, [&state](uint32_t addr) -> uint8_t {
+    state.memory->setReadHandlerB(CONSOLE_STATUS_ADDR, [&state](uint32_t addr) -> uint8_t {
         uint8_t status = 0;
         return status;
     });

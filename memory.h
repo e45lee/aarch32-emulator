@@ -31,6 +31,8 @@ public:
 
     virtual uint8_t readByte(uint32_t address);
     virtual void writeByte(uint32_t address, uint8_t value);
+    virtual void writeWord(uint32_t address, uint32_t value);
+    virtual uint32_t readWord(uint32_t address);
 };
 
 #endif

@@ -11,26 +11,50 @@
 
 MemoryMappedIO::MemoryMappedIO(uint32_t lower_end, uint32_t upper_start) : Memory(lower_end, upper_start) {}
 
-void MemoryMappedIO::setReadHandler(uint32_t address, ReadHandler handler) {
-    read_handlers[address] = handler;
+void MemoryMappedIO::setReadHandlerB(uint32_t address, ReadHandlerB handler) {
+    read_handlersB[address] = handler;
 }
 
-void MemoryMappedIO::setWriteHandler(uint32_t address, WriteHandler handler) {
-    write_handlers[address] = handler;
+void MemoryMappedIO::setWriteHandlerB(uint32_t address, WriteHandlerB handler) {
+    write_handlersB[address] = handler;
+}
+
+void MemoryMappedIO::setReadHandlerW(uint32_t address, ReadHandlerW handler) {
+    read_handlersW[address] = handler;
+}
+
+void MemoryMappedIO::setWriteHandlerW(uint32_t address, WriteHandlerW handler) {
+    write_handlersW[address] = handler;
 }
 
 uint8_t MemoryMappedIO::readByte(uint32_t address) {
-    if (read_handlers.find(address) != read_handlers.end()) {
-        return read_handlers[address](address);
+    if (read_handlersB.find(address) != read_handlersB.end()) {
+        return read_handlersB[address](address);
     } else {
         return Memory::readByte(address);
     }
 }
 
 void MemoryMappedIO::writeByte(uint32_t address, uint8_t value) {
-    if (write_handlers.find(address) != write_handlers.end()) {
-        write_handlers[address](address, value);
+    if (write_handlersB.find(address) != write_handlersB.end()) {
+        write_handlersB[address](address, value);
     } else {
         Memory::writeByte(address, value);
+    }
+}
+
+void MemoryMappedIO::writeWord(uint32_t address, uint32_t value) {
+    if (write_handlersW.find(address) != write_handlersW.end()) {
+        write_handlersW[address](address, value);
+    } else {
+        Memory::writeWord(address, value);
+    }
+}
+
+uint32_t MemoryMappedIO::readWord(uint32_t address) {
+    if (read_handlersW.find(address) != read_handlersW.end()) {
+        return read_handlersW[address](address);
+    } else {
+        return Memory::readWord(address);
     }
 }

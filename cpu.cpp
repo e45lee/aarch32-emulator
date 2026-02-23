@@ -16,7 +16,7 @@ ExecutionResult CPU::step() {
         return ExecutionResult(); // Return an empty result indicating no execution
     }
 
-    uint32_t raw_instruction = mem->readByte(pc) | mem->readByte(pc + 1) << 8 | mem->readByte(pc + 2) << 16 | mem->readByte(pc + 3) << 24;
+    uint32_t raw_instruction = mem->readWord(pc);
 
     // Decode instruction
     AArch32Instruction instr;

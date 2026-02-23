@@ -31,3 +31,20 @@ void Memory::writeByte(uint32_t address, uint8_t value) {
         throw std::out_of_range(std::format("Memory write out of bounds: 0x{:08X}, lower_end=0x{:08X}, upper_start=0x{:08X}", address, lower_end, upper_start));
     }
 }
+
+void Memory::writeWord(uint32_t address, uint32_t value) {
+    // Write a 32-bit word in little-endian format
+    writeByte(address, value & 0xFF);
+    writeByte(address + 1, (value >> 8) & 0xFF);
+    writeByte(address + 2, (value >> 16) & 0xFF);
+    writeByte(address + 3, (value >> 24) & 0xFF);
+}
+
+uint32_t Memory::readWord(uint32_t address) {
+    // Read a 32-bit word in little-endian format
+    uint32_t byte0 = readByte(address);
+    uint32_t byte1 = readByte(address + 1);
+    uint32_t byte2 = readByte(address + 2);
+    uint32_t byte3 = readByte(address + 3);
+    return (byte3 << 24) | (byte2 << 16) | (byte1 << 8) | byte0;
+}

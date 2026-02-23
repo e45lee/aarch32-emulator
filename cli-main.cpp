@@ -54,34 +54,25 @@ bool loadBinaryFile(MemoryMappedIO* memory, const std::string& filename, uint32_
  */
 void setupConsoleIO(MemoryMappedIO* memory) {
     // Console output handler - write to stdout
-    memory->setWriteHandler(CONSOLE_OUT_ADDR, [](uint32_t address, uint8_t value) {
+    memory->setWriteHandlerB(CONSOLE_OUT_ADDR, [](uint32_t address, uint8_t value) {
         std::cout << static_cast<char>(value) << std::flush;
     });
 
     // Console input handler - read from stdin
-    memory->setReadHandler(CONSOLE_IN_ADDR, [](uint32_t address) -> uint8_t {
+    memory->setReadHandlerW(CONSOLE_IN_ADDR, [](uint32_t address) -> uint32_t {
         if (std::cin.eof()) {
-            return 0xff;
+            return -1;
         }
         char c;
         if (std::cin.get(c)) {
             return static_cast<uint8_t>(c);
         }
-        return 0xff;
-    });
-    memory->setReadHandler(CONSOLE_IN_ADDR + 1, [](uint32_t address) -> uint8_t {
-        return !std::cin ? 0xff : 0;
-    });
-    memory->setReadHandler(CONSOLE_IN_ADDR + 2, [](uint32_t address) -> uint8_t {
-        return !std::cin ? 0xff : 0;
-    });
-    memory->setReadHandler(CONSOLE_IN_ADDR + 3, [](uint32_t address) -> uint8_t {
-        return !std::cin ? 0xff : 0;
+        return -1;
     });
 
     // Console status handler
     // Returns 1 if EOF/Bad, 0 if input available
-    memory->setReadHandler(CONSOLE_STATUS_ADDR, [](uint32_t address) -> uint8_t {
+    memory->setReadHandlerB(CONSOLE_STATUS_ADDR, [](uint32_t address) -> uint8_t {
         // Use peek() to check if we can read without consuming
         // peek() returns EOF when at end of stream
         std::cin.peek();
