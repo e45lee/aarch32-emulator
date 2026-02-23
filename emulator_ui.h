@@ -29,6 +29,7 @@ struct EmulatorState {
     std::shared_ptr<MemoryMappedIO> memory;
     std::deque<std::string> console_output;
     std::deque<char> console_input;
+    bool console_eof = false;
     std::string console_current_input;
     bool console_focused = false;
     bool running = false;

@@ -163,6 +163,9 @@ void setupConsoleIO(EmulatorState& state) {
 
     // Console input handler
     state.memory->setReadHandlerW(CONSOLE_IN_ADDR, [&state](uint32_t addr) -> uint32_t {
+        if (state.console_eof) {
+            return 0xFFFFFFFF;
+        }
         if (!state.console_input.empty()) {
             char c = state.console_input.front();
             state.console_input.pop_front();
@@ -170,7 +173,6 @@ void setupConsoleIO(EmulatorState& state) {
         } else {
             throw NoInputException();
         }
-        return -1;
     });
 
 

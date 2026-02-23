@@ -246,7 +246,7 @@ Component createUIRenderer(EmulatorState& state) {
             separator(),
             text(" " + state.status_message + " ") | flex,
             separator(),
-            text(" F5: Run/Stop | F6: Step | F7: Reset | F12: Quit ") | dim
+            text(" F5: Run/Stop | F6: Step | F7: Reset | F10: EOF | F12: Quit ") | dim
         }) | border;
 
         // Combine everything
@@ -347,6 +347,7 @@ Component createEventHandler(Component base, EmulatorState& state, ScreenInterac
             state.running = false;
             state.console_output.clear();
             state.console_input.clear();
+            state.console_eof = false;
             state.console_current_input.clear();
             state.last_written_registers.clear();
 
@@ -364,6 +365,14 @@ Component createEventHandler(Component base, EmulatorState& state, ScreenInterac
 
             // Reapply initial register values
             applyInitialRegisters(state);
+            return true;
+        }
+
+        // F10: Signal EOF on console input
+        if (event == Event::F10) {
+            state.console_eof = true;
+            state.console_input.clear();
+            state.status_message = "EOF signalled";
             return true;
         }
 
