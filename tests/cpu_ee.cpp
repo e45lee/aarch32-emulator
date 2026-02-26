@@ -8,8 +8,8 @@
         - Flag updates
  */
 
-#include "../cpu_ee.h"
-#include "../memory.h"
+#include "cpu_ee.h"
+#include "memory.h"
 #include <catch2/catch_test_macros.hpp>
 
 // Helper function to access CPU registers (we'll need to add getters)

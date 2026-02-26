@@ -24,22 +24,38 @@ include(Catch)
 
 # Set C++ version
 set(CMAKE_CXX_STANDARD 20)
-set(SOURCES memory.cpp mmio.cpp decode_instruction.cpp cpu_ee.cpp cpu.cpp)
-set(UI_SOURCES emulator_ui.cpp ui_renderer.cpp)
+
+# targets
+add_library(aarch32-runtime)
+add_executable(aarch32-emulator-ui)
+add_executable(aarch32-cli)
+
 set(TESTS tests/memory.cpp tests/mmio.cpp tests/decode_instruction.cpp tests/cpu_ee.cpp tests/cpu.cpp)
 
+# test targets 
+add_executable(aarch32-emulator-tests ${TESTS})
+
+add_subdirectory(${CMAKE_SOURCE_DIR}/include)
+add_subdirectory(${CMAKE_SOURCE_DIR}/src)
+
+
 # Build the main executable
-add_executable(aarch32-emulator-ui ui-main.cpp ${SOURCES} ${UI_SOURCES})
 target_link_libraries(aarch32-emulator-ui
+  PRIVATE aarch32-runtime
   PRIVATE ftxui::screen
   PRIVATE ftxui::dom
   PRIVATE ftxui::component
 )
 
 # Build the CLI executable (no UI, uses stdin/stdout)
-add_executable(aarch32-cli cli-main.cpp ${SOURCES})
+target_link_libraries(aarch32-cli
+  PRIVATE aarch32-runtime
+)
 
 # And the tests
-add_executable(aarch32-emulator-tests ${SOURCES} ${TESTS})
-target_link_libraries(aarch32-emulator-tests PRIVATE Catch2::Catch2WithMain)
+target_link_libraries(aarch32-emulator-tests 
+  PRIVATE aarch32-runtime
+  PRIVATE Catch2::Catch2WithMain
+)
+
 catch_discover_tests(aarch32-emulator-tests)

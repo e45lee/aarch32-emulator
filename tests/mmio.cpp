@@ -3,7 +3,7 @@
 
     Tests for the MMIO subsystem of the AArch32 emulator.
  */
-#include "../mmio.h"
+#include "mmio.h"
 #include <catch2/catch_test_macros.hpp>
 
 TEST_CASE("MMIO read/write with handlers", "[mmio]") {
