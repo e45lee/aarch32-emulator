@@ -8,20 +8,20 @@
         - Flag updates
  */
 
-#include "cpu_ee.h"
-#include "memory.h"
+#include "ExecutionEngine.hpp"
+#include "Memory.hpp"
 #include <catch2/catch_test_macros.hpp>
 
 // Helper function to access CPU registers (we'll need to add getters)
-class TestableExecutionEngine : public CPU_ExecutionEngine {
+class TestableExecutionEngine : public ExecutionEngine {
 public:
   TestableExecutionEngine(Memory *mem, uint32_t initial_pc)
-      : CPU_ExecutionEngine(mem, initial_pc) {}
+      : ExecutionEngine(mem, initial_pc) {}
 
   void setCPSR(uint32_t value) { cpsr = value; }
 
-  using CPU_ExecutionEngine::executeInstruction;
-  using CPU_ExecutionEngine::shouldExecuteInstruction;
+  using ExecutionEngine::executeInstruction;
+  using ExecutionEngine::shouldExecuteInstruction;
 };
 
 TEST_CASE("Data Processing - MOV immediate", "[cpu_ee]") {

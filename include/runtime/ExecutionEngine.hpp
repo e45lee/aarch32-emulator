@@ -10,7 +10,7 @@
 #ifndef CPU_EE_H
 #define CPU_EE_H
 
-#include "instruction.h"
+#include "Instruction.hpp"
 #include <set>
 
 // Constants
@@ -46,7 +46,7 @@ struct ExecutionResult {
    cycle is handled here, but the fetch-decode-execute loop is managed by the
    CPU class.
  */
-class CPU_ExecutionEngine {
+class ExecutionEngine {
 protected:
   uint32_t registers[16]; // General-purpose registers R0-R15 (R13 is the stack
                           // register, R14 is the link register, R15 is the
@@ -75,7 +75,7 @@ private:
   void updateFlags(uint32_t result, bool carry, bool overflow);
 
 public:
-  CPU_ExecutionEngine(Memory *mem, uint32_t initial_pc);
+  ExecutionEngine(Memory *mem, uint32_t initial_pc);
 
   ExecutionResult executeInstruction(AArch32Instruction instr);
   bool shouldExecuteInstruction(AArch32Instruction instr);

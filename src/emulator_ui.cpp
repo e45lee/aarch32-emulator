@@ -6,7 +6,7 @@
 */
 
 #include "emulator_ui.h"
-#include "instruction.h"
+#include "Instruction.hpp"
 #include <fstream>
 #include <iomanip>
 #include <iostream>

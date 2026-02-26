@@ -11,9 +11,9 @@
 #include <memory>
 #include <thread>
 
-#include "cpu.h"
+#include "CPU.hpp"
+#include "MemoryMappedIO.hpp"
 #include "emulator_ui.h"
-#include "mmio.h"
 #include "ui_renderer.h"
 
 using namespace ftxui;

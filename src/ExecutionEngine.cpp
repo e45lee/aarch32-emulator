@@ -3,11 +3,11 @@
     Implementation of the CPU execution engine for the AArch32 emulator.
  */
 
-#include "cpu_ee.h"
-#include "memory.h"
+#include "ExecutionEngine.hpp"
+#include "Memory.hpp"
 #include <format>
 
-CPU_ExecutionEngine::CPU_ExecutionEngine(Memory *mem, uint32_t initial_pc)
+ExecutionEngine::ExecutionEngine(Memory *mem, uint32_t initial_pc)
     : memory(mem), wrotePC(false), newPC(0) {
   // Initialize registers to 0
   for (int i = 0; i < 16; i++) {
@@ -22,9 +22,9 @@ CPU_ExecutionEngine::CPU_ExecutionEngine(Memory *mem, uint32_t initial_pc)
   cpsr = 0;
 }
 
-bool CPU_ExecutionEngine::didWritePC() const { return wrotePC; }
+bool ExecutionEngine::didWritePC() const { return wrotePC; }
 
-uint32_t CPU_ExecutionEngine::getNextPC() const {
+uint32_t ExecutionEngine::getNextPC() const {
   if (wrotePC) {
     return newPC;
   } else {
@@ -32,13 +32,13 @@ uint32_t CPU_ExecutionEngine::getNextPC() const {
   }
 }
 
-void CPU_ExecutionEngine::setNextPC() {
+void ExecutionEngine::setNextPC() {
   registers[15] =
       getNextPC(); // Increment PC by 4 to point to the next instruction
   wrotePC = false; // Reset the flag after incrementing
 }
 
-bool CPU_ExecutionEngine::shouldExecuteInstruction(AArch32Instruction instr) {
+bool ExecutionEngine::shouldExecuteInstruction(AArch32Instruction instr) {
   // Extract condition code from the instruction
   uint32_t cond = instr.common.cond;
 
@@ -85,7 +85,7 @@ bool CPU_ExecutionEngine::shouldExecuteInstruction(AArch32Instruction instr) {
 }
 
 ExecutionResult
-CPU_ExecutionEngine::executeInstruction(AArch32Instruction instr) {
+ExecutionEngine::executeInstruction(AArch32Instruction instr) {
   ExecutionResult result;
 
   if (!shouldExecuteInstruction(instr)) {
@@ -135,7 +135,7 @@ CPU_ExecutionEngine::executeInstruction(AArch32Instruction instr) {
   return result;
 }
 
-uint32_t CPU_ExecutionEngine::applyShift(uint32_t value, uint32_t shift_type,
+uint32_t ExecutionEngine::applyShift(uint32_t value, uint32_t shift_type,
                                          uint32_t shift_amount,
                                          bool &carry_out) {
   if (shift_amount == 0) {
@@ -175,7 +175,7 @@ uint32_t CPU_ExecutionEngine::applyShift(uint32_t value, uint32_t shift_type,
   return value;
 }
 
-void CPU_ExecutionEngine::updateFlags(uint32_t result, bool carry,
+void ExecutionEngine::updateFlags(uint32_t result, bool carry,
                                       bool overflow) {
   // Update N flag (bit 31)
   if (result & 0x80000000) {
@@ -207,7 +207,7 @@ void CPU_ExecutionEngine::updateFlags(uint32_t result, bool carry,
 }
 
 ExecutionResult
-CPU_ExecutionEngine::executeDataProcessing(AArch32Instruction instr) {
+ExecutionEngine::executeDataProcessing(AArch32Instruction instr) {
   ExecutionResult execResult;
   uint32_t operand1, operand2, result;
   bool carry = (cpsr >> 29) & 1;
@@ -343,7 +343,7 @@ CPU_ExecutionEngine::executeDataProcessing(AArch32Instruction instr) {
 }
 
 ExecutionResult
-CPU_ExecutionEngine::executeLoadStore(AArch32Instruction instr) {
+ExecutionEngine::executeLoadStore(AArch32Instruction instr) {
   ExecutionResult execResult;
   uint32_t rn = instr.ls.rn;
   uint32_t rd = instr.ls.rd;
@@ -429,7 +429,7 @@ CPU_ExecutionEngine::executeLoadStore(AArch32Instruction instr) {
   return execResult;
 }
 
-ExecutionResult CPU_ExecutionEngine::executeBranch(AArch32Instruction instr) {
+ExecutionResult ExecutionEngine::executeBranch(AArch32Instruction instr) {
   ExecutionResult execResult;
 
   // Sign-extend the 24-bit offset to 32 bits
@@ -459,7 +459,7 @@ ExecutionResult CPU_ExecutionEngine::executeBranch(AArch32Instruction instr) {
 }
 
 ExecutionResult
-CPU_ExecutionEngine::executeBranchExchange(AArch32Instruction instr) {
+ExecutionEngine::executeBranchExchange(AArch32Instruction instr) {
   ExecutionResult execResult;
   uint32_t rm = instr.bx.rm;
   uint32_t target = registers[rm];
@@ -477,7 +477,7 @@ CPU_ExecutionEngine::executeBranchExchange(AArch32Instruction instr) {
   return execResult;
 }
 
-ExecutionResult CPU_ExecutionEngine::executeMultiply(AArch32Instruction instr) {
+ExecutionResult ExecutionEngine::executeMultiply(AArch32Instruction instr) {
   ExecutionResult execResult;
 
   // Get operands
@@ -520,7 +520,7 @@ ExecutionResult CPU_ExecutionEngine::executeMultiply(AArch32Instruction instr) {
   return execResult;
 }
 
-ExecutionResult CPU_ExecutionEngine::executeDivide(AArch32Instruction instr) {
+ExecutionResult ExecutionEngine::executeDivide(AArch32Instruction instr) {
   ExecutionResult execResult;
 
   // Get operands
@@ -554,7 +554,7 @@ ExecutionResult CPU_ExecutionEngine::executeDivide(AArch32Instruction instr) {
 }
 
 ExecutionResult
-CPU_ExecutionEngine::executeBlockDataTransfer(AArch32Instruction instr) {
+ExecutionEngine::executeBlockDataTransfer(AArch32Instruction instr) {
   ExecutionResult execResult;
 
   uint32_t base_reg = instr.ldm_stm.rn;
@@ -640,12 +640,12 @@ CPU_ExecutionEngine::executeBlockDataTransfer(AArch32Instruction instr) {
   return execResult;
 }
 
-uint32_t CPU_ExecutionEngine::getRegister(int reg) const {
+uint32_t ExecutionEngine::getRegister(int reg) const {
   return registers[reg];
 }
 
-uint32_t CPU_ExecutionEngine::getCPSR() const { return cpsr; }
+uint32_t ExecutionEngine::getCPSR() const { return cpsr; }
 
-void CPU_ExecutionEngine::setRegister(int reg, uint32_t value) {
+void ExecutionEngine::setRegister(int reg, uint32_t value) {
   registers[reg] = value;
 }

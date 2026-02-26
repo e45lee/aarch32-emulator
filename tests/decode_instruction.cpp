@@ -1,4 +1,4 @@
-#include "instruction.h"
+#include "Instruction.hpp"
 #include <catch2/catch_test_macros.hpp>
 
 TEST_CASE("Data processing instructions", "[instruction][decode]") {

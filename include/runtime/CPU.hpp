@@ -6,11 +6,11 @@
 #ifndef CPU_H
 #define CPU_H
 
-#include "cpu_ee.h"
+#include "ExecutionEngine.hpp"
 
 class CPU {
 private:
-  CPU_ExecutionEngine execution_engine; // The execution engine responsible for
+  ExecutionEngine execution_engine; // The execution engine responsible for
                                         // executing instructions
   Memory *mem;
 

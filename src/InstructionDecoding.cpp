@@ -2,7 +2,7 @@
     instruction.cpp
     Code for decoding an ARM instruction to a human-readable string.
  */
-#include "instruction.h"
+#include "Instruction.hpp"
 
 std::string decodeInstruction(uint32_t raw_instruction) {
   AArch32Instruction instr;

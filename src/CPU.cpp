@@ -2,8 +2,8 @@
     Implementation of the CPU class.
 */
 
-#include "cpu.h"
-#include "memory.h"
+#include "CPU.hpp"
+#include "Memory.hpp"
 
 CPU::CPU(Memory *mem, uint32_t initial_pc)
     : mem(mem), execution_engine(mem, initial_pc) {}

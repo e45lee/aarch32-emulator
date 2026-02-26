@@ -1,7 +1,7 @@
 /**
     Implementation of the Memory class.
 */
-#include "memory.h"
+#include "Memory.hpp"
 #include <format>
 
 Memory::Memory(uint32_t lower_end, uint32_t upper_start)

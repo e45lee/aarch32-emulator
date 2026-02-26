@@ -8,8 +8,8 @@
         - PC management and instruction fetching
  */
 
-#include "cpu.h"
-#include "memory.h"
+#include "CPU.hpp"
+#include "Memory.hpp"
 #include <catch2/catch_test_macros.hpp>
 
 TEST_CASE("CPU construction with initial PC", "[cpu]") {

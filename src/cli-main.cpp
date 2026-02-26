@@ -15,8 +15,8 @@
 #include <string>
 #include <vector>
 
-#include "cpu.h"
-#include "mmio.h"
+#include "CPU.hpp"
+#include "MemoryMappedIO.hpp"
 
 // MMIO addresses for console I/O
 const uint32_t CONSOLE_OUT_ADDR = 0x9000000;

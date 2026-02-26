@@ -4,7 +4,7 @@
    byte-addressable memory space.
  */
 
-#include "memory.h"
+#include "Memory.hpp"
 #include <catch2/catch_test_macros.hpp>
 
 TEST_CASE("Memory read/write lower half", "[memory]") {

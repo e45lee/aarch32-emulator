@@ -11,7 +11,7 @@
 #ifndef MMIO_H
 #define MMIO_H
 
-#include "memory.h"
+#include "Memory.hpp"
 #include <functional>
 #include <map>
 

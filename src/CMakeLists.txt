@@ -1,9 +1,9 @@
 target_sources(aarch32-runtime PRIVATE 
-  memory.cpp
-  mmio.cpp
-  decode_instruction.cpp
-  cpu_ee.cpp
-  cpu.cpp
+  Memory.cpp
+  MemoryMappedIO.cpp
+  InstructionDecoding.cpp
+  ExecutionEngine.cpp
+  CPU.cpp
 )
 
 target_sources(aarch32-emulator-ui PRIVATE

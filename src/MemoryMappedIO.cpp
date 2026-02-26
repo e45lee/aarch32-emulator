@@ -7,8 +7,8 @@
    byte-addressable memory space. that can be overriden with custom read/write
    handlers for specific address ranges (e.g., for memory-mapped I/O devices).
 */
-#include "mmio.h"
-#include "memory.h"
+#include "MemoryMappedIO.hpp"
+#include "Memory.hpp"
 
 MemoryMappedIO::MemoryMappedIO(uint32_t lower_end, uint32_t upper_start)
     : Memory(lower_end, upper_start) {}

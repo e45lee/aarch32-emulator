@@ -8,8 +8,8 @@
 #ifndef EMULATOR_UI_H
 #define EMULATOR_UI_H
 
-#include "cpu.h"
-#include "mmio.h"
+#include "CPU.hpp"
+#include "MemoryMappedIO.hpp"
 #include <deque>
 #include <memory>
 #include <set>
