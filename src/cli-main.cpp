@@ -8,10 +8,13 @@
 */
 
 #include <cstdlib>
+#include <cstdint>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
 #include <memory>
+#include <limits>
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -45,6 +48,64 @@ bool loadBinaryFile(MemoryMappedIO *memory, const std::string &filename,
   // Write to memory
   for (size_t i = 0; i < buffer.size(); i++) {
     memory->writeByte(load_address + i, static_cast<uint8_t>(buffer[i]));
+  }
+
+  return true;
+}
+
+/**
+ * Load signed 32-bit integers from a text file and write them as words into
+ * memory. Integers can be decimal or hex (0x prefix), separated by whitespace
+ * and/or commas.
+ */
+bool loadIntListFile(MemoryMappedIO *memory, const std::string &filename,
+                     uint32_t start_address, size_t &loaded_count) {
+  std::ifstream file(filename);
+  if (!file.is_open()) {
+    std::cerr << "Error: Could not open int list file: " << filename
+              << std::endl;
+    return false;
+  }
+
+  loaded_count = 0;
+  std::string line;
+  while (std::getline(file, line)) {
+    for (char &ch : line) {
+      if (ch == ',') {
+        ch = ' ';
+      }
+    }
+
+    std::istringstream iss(line);
+    std::string token;
+    while (iss >> token) {
+      try {
+        long long parsed = std::stoll(token, nullptr, 0);
+        if (parsed < std::numeric_limits<int32_t>::min() ||
+            parsed > std::numeric_limits<int32_t>::max()) {
+          std::cerr << "Error: Integer out of 32-bit signed range in int list "
+                       "file: "
+                    << token << std::endl;
+          return false;
+        }
+
+        if (loaded_count >
+            (std::numeric_limits<uint32_t>::max() - start_address) / 4) {
+          std::cerr << "Error: Address overflow while loading int list file"
+                    << std::endl;
+          return false;
+        }
+
+        uint32_t value = static_cast<uint32_t>(static_cast<int32_t>(parsed));
+        memory->writeWord(start_address + static_cast<uint32_t>(loaded_count * 4),
+                          value);
+        loaded_count++;
+      } catch (const std::exception &) {
+        std::cerr << "Error: Invalid integer token in int list file: " << token
+                  << std::endl;
+        return false;
+      }
+    }
   }
 
   return true;
@@ -124,13 +185,20 @@ void dumpRegisterState(CPU *cpu) {
 
 void printUsage(const char *program_name) {
   std::cerr << "Usage: " << program_name
-            << " <binary_file> [--r0 VALUE] [--r1 VALUE] ... [--r12 VALUE]"
+        << " <binary_file> [--r0 VALUE] ... [--r12 VALUE] [--int-file "
+          "FILE --int-addr ADDRESS]"
             << std::endl;
   std::cerr << std::endl;
   std::cerr << "Options:" << std::endl;
   std::cerr << "  --r0 to --r12   Set initial register values (decimal or hex "
                "with 0x prefix)"
             << std::endl;
+  std::cerr << "  --int-file FILE Text file containing ints (decimal/hex, "
+          "whitespace/comma-separated)"
+        << std::endl;
+  std::cerr << "  --int-addr ADDR Start memory address to place ints as 32-bit "
+          "little-endian words"
+        << std::endl;
   std::cerr << std::endl;
   std::cerr << "MMIO Addresses:" << std::endl;
   std::cerr << "  0x9000000  Console output (write a byte to print to stdout)"
@@ -144,6 +212,9 @@ void printUsage(const char *program_name) {
   std::cerr << "Examples:" << std::endl;
   std::cerr << "  " << program_name << " program.bin" << std::endl;
   std::cerr << "  " << program_name << " program.bin --r0 42 --r1 0xFF"
+            << std::endl;
+  std::cerr << "  " << program_name
+            << " program.bin --int-file input.txt --int-addr 0x1000"
             << std::endl;
   std::cerr << "  echo \"Hello\" | " << program_name << " echo.bin"
             << std::endl;
@@ -160,6 +231,10 @@ int main(int argc, char *argv[]) {
   std::string binary_filename = argv[1];
   uint32_t initial_registers[13] = {0};
   bool has_initial_registers[13] = {false};
+  std::string int_list_filename;
+  uint32_t int_list_start_address = 0;
+  bool has_int_file = false;
+  bool has_int_addr = false;
 
   // Parse register flags
   for (int i = 2; i < argc; i++) {
@@ -190,11 +265,39 @@ int main(int argc, char *argv[]) {
         std::cerr << "Error: Invalid register flag: " << arg << std::endl;
         return 1;
       }
+    } else if (arg == "--int-file") {
+      if (i + 1 >= argc) {
+        std::cerr << "Error: --int-file requires a file path" << std::endl;
+        return 1;
+      }
+      i++;
+      int_list_filename = argv[i];
+      has_int_file = true;
+    } else if (arg == "--int-addr") {
+      if (i + 1 >= argc) {
+        std::cerr << "Error: --int-addr requires an address value" << std::endl;
+        return 1;
+      }
+      i++;
+      try {
+        int_list_start_address = std::stoul(argv[i], nullptr, 0);
+        has_int_addr = true;
+      } catch (...) {
+        std::cerr << "Error: Invalid address value for --int-addr: " << argv[i]
+                  << std::endl;
+        return 1;
+      }
     } else if (arg[0] == '-') {
       std::cerr << "Error: Unknown option: " << arg << std::endl;
       printUsage(argv[0]);
       return 1;
     }
+  }
+
+  if (has_int_file != has_int_addr) {
+    std::cerr << "Error: --int-file and --int-addr must be provided together"
+              << std::endl;
+    return 1;
   }
 
   // Create memory and CPU
@@ -209,6 +312,17 @@ int main(int argc, char *argv[]) {
     std::cerr << "Error: Failed to load binary file: " << binary_filename
               << std::endl;
     return 1;
+  }
+
+  if (has_int_file) {
+    size_t loaded_count = 0;
+    if (!loadIntListFile(memory.get(), int_list_filename, int_list_start_address,
+                         loaded_count)) {
+      return 1;
+    }
+    std::cerr << "Loaded " << loaded_count << " ints from " << int_list_filename
+              << " at address 0x" << std::hex << int_list_start_address
+              << std::dec << std::endl;
   }
 
   // Apply initial register values
