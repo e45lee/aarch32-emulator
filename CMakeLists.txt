@@ -29,6 +29,7 @@ set(CMAKE_CXX_STANDARD 20)
 add_library(aarch32-runtime)
 add_executable(aarch32-emulator-ui)
 add_executable(aarch32-cli)
+add_executable(aarch32-disasm)
 
 set(TESTS tests/memory.cpp tests/mmio.cpp tests/decode_instruction.cpp tests/cpu_ee.cpp tests/cpu.cpp)
 
@@ -49,6 +50,11 @@ target_link_libraries(aarch32-emulator-ui
 
 # Build the CLI executable (no UI, uses stdin/stdout)
 target_link_libraries(aarch32-cli
+  PRIVATE aarch32-runtime
+)
+
+# Build the disassembler
+target_link_libraries(aarch32-disasm
   PRIVATE aarch32-runtime
 )
 

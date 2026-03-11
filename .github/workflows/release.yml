@@ -57,6 +57,8 @@ jobs:
              "dist/aarch32-emulator-ui-${{ matrix.os_name }}${{ matrix.binary_ext }}"
           cp "${{ matrix.binary_dir }}/aarch32-cli${{ matrix.binary_ext }}" \
              "dist/aarch32-cli-${{ matrix.os_name }}${{ matrix.binary_ext }}"
+          cp "${{ matrix.binary_dir }}/aarch32-disasm${{ matrix.binary_ext }}" \
+             "dist/aarch32-disasm-${{ matrix.os_name }}${{ matrix.binary_ext }}"
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4

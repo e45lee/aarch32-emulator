@@ -15,3 +15,7 @@ target_sources(aarch32-emulator-ui PRIVATE
 target_sources(aarch32-cli PRIVATE
   cli-main.cpp
 )
+
+target_sources(aarch32-disasm PRIVATE
+  disasm-main.cpp
+)

@@ -155,7 +155,7 @@ void dumpRegisterState(CPU *cpu) {
     std::cerr << "  ";
     for (int j = 0; j < 4 && (i + j) < 13; j++) {
       int reg = i + j;
-      std::cerr << "R" << std::setw(2) << std::left << reg << ": 0x" << std::hex
+      std::cerr << "R" << std::setw(2) << std::left << std::dec << reg << ": 0x" << std::hex
                 << std::setw(8) << std::setfill('0') << std::right
                 << cpu->getRegister(reg) << std::setfill(' ') << "  ";
     }
