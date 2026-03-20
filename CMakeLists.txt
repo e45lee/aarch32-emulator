@@ -18,6 +18,11 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(Catch2)
 list(APPEND CMAKE_MODULE_PATH ${catch2_SOURCE_DIR}/extras)
 
+# Dependencies -- nlohmann/json
+FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.12.0/json.tar.xz)
+FetchContent_MakeAvailable(json)
+
+
 # Enable tests
 include(CTest)
 include(Catch)
@@ -50,7 +55,7 @@ target_link_libraries(aarch32-emulator-ui
 
 # Build the CLI executable (no UI, uses stdin/stdout)
 target_link_libraries(aarch32-cli
-  PRIVATE aarch32-runtime
+  PRIVATE aarch32-runtime nlohmann_json::nlohmann_json
 )
 
 # Build the disassembler

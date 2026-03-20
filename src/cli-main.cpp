@@ -18,6 +18,8 @@
 #include <string>
 #include <vector>
 
+#include <nlohmann/json.hpp>
+
 #include "CPU.hpp"
 #include "MemoryMappedIO.hpp"
 
@@ -183,6 +185,28 @@ void dumpRegisterState(CPU *cpu) {
   std::cerr << std::dec << std::setfill(' ');
 }
 
+/**
+ * Build a JSON object of the full CPU register state
+ */
+nlohmann::json registerStateJSON(CPU *cpu) {
+  uint32_t cpsr = cpu->getCPSR();
+  nlohmann::json j;
+  for (int i = 0; i <= 12; i++) {
+    j["r" + std::to_string(i)] = cpu->getRegister(i);
+  }
+  j["sp"]   = cpu->getRegister(13);
+  j["lr"]   = cpu->getRegister(14);
+  j["pc"]   = cpu->getRegister(15);
+  j["cpsr"] = cpsr;
+  j["flags"] = {
+    {"N", bool((cpsr >> 31) & 1)},
+    {"Z", bool((cpsr >> 30) & 1)},
+    {"C", bool((cpsr >> 29) & 1)},
+    {"V", bool((cpsr >> 28) & 1)},
+  };
+  return j;
+}
+
 void printUsage(const char *program_name) {
   std::cerr << "Usage: " << program_name
         << " <binary_file> [--r0 VALUE] ... [--r12 VALUE] [--int-file "
@@ -190,15 +214,19 @@ void printUsage(const char *program_name) {
             << std::endl;
   std::cerr << std::endl;
   std::cerr << "Options:" << std::endl;
-  std::cerr << "  --r0 to --r12   Set initial register values (decimal or hex "
+  std::cerr << "  --r0 to --r12        Set initial register values (decimal or hex "
                "with 0x prefix)"
             << std::endl;
-  std::cerr << "  --int-file FILE Text file containing ints (decimal/hex, "
+  std::cerr << "  --int-file FILE      Text file containing ints (decimal/hex, "
           "whitespace/comma-separated)"
         << std::endl;
-  std::cerr << "  --int-addr ADDR Start memory address to place ints as 32-bit "
+  std::cerr << "  --int-addr ADDR      Start memory address to place ints as 32-bit "
           "little-endian words"
         << std::endl;
+  std::cerr << "  --json-regs-stdout   Dump register state as JSON to stdout after execution"
+            << std::endl;
+  std::cerr << "  --json-regs-stderr   Dump register state as JSON to stderr after execution"
+            << std::endl;
   std::cerr << std::endl;
   std::cerr << "MMIO Addresses:" << std::endl;
   std::cerr << "  0x9000000  Console output (write a byte to print to stdout)"
@@ -235,6 +263,8 @@ int main(int argc, char *argv[]) {
   uint32_t int_list_start_address = 0;
   bool has_int_file = false;
   bool has_int_addr = false;
+  bool json_regs_stdout = false;
+  bool json_regs_stderr = false;
 
   // Parse register flags
   for (int i = 2; i < argc; i++) {
@@ -287,6 +317,10 @@ int main(int argc, char *argv[]) {
                   << std::endl;
         return 1;
       }
+    } else if (arg == "--json-regs-stdout") {
+      json_regs_stdout = true;
+    } else if (arg == "--json-regs-stderr") {
+      json_regs_stderr = true;
     } else if (arg[0] == '-') {
       std::cerr << "Error: Unknown option: " << arg << std::endl;
       printUsage(argv[0]);
@@ -348,11 +382,15 @@ int main(int argc, char *argv[]) {
                 << MAX_INSTRUCTIONS << ")" << std::endl;
       std::cerr << "Program may be in an infinite loop" << std::endl;
       dumpRegisterState(cpu.get());
+      if (json_regs_stdout) std::cout << registerStateJSON(cpu.get()).dump(2) << std::endl;
+      if (json_regs_stderr) std::cerr << registerStateJSON(cpu.get()).dump(2) << std::endl;
       return 2;
     }
 
     // Program completed successfully
     dumpRegisterState(cpu.get());
+    if (json_regs_stdout) std::cout << registerStateJSON(cpu.get()).dump(2) << std::endl;
+    if (json_regs_stderr) std::cerr << registerStateJSON(cpu.get()).dump(2) << std::endl;
     return 0;
 
   } catch (const std::exception &e) {
@@ -361,6 +399,8 @@ int main(int argc, char *argv[]) {
     std::cerr << "Executed " << std::dec << instruction_count << " instructions"
               << std::endl;
     dumpRegisterState(cpu.get());
+    if (json_regs_stdout) std::cout << registerStateJSON(cpu.get()).dump(2) << std::endl;
+    if (json_regs_stderr) std::cerr << registerStateJSON(cpu.get()).dump(2) << std::endl;
     return 1;
   }
 }
