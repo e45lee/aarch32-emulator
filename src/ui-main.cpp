@@ -107,7 +107,7 @@ int main(int argc, char *argv[]) {
       std::string reg_num_str = arg.substr(3);
       try {
         int reg_num = std::stoi(reg_num_str);
-        if (reg_num >= 0 && reg_num <= 12) {
+        if (reg_num >= 0 && reg_num <= 13) {
           // Next argument should be the value
           if (i + 1 < argc) {
             i++;
@@ -122,7 +122,7 @@ int main(int argc, char *argv[]) {
           }
         } else {
           std::cerr << "Error: Invalid register number: " << arg << std::endl;
-          std::cerr << "Valid registers are --r0 through --r12" << std::endl;
+          std::cerr << "Valid registers are --r0 through --r13" << std::endl;
           return 1;
         }
       } catch (...) {

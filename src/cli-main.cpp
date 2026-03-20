@@ -209,12 +209,12 @@ nlohmann::json registerStateJSON(CPU *cpu) {
 
 void printUsage(const char *program_name) {
   std::cerr << "Usage: " << program_name
-        << " <binary_file> [--r0 VALUE] ... [--r12 VALUE] [--int-file "
+        << " <binary_file> [--r0 VALUE] ... [--r13 VALUE] [--int-file "
           "FILE --int-addr ADDRESS]"
             << std::endl;
   std::cerr << std::endl;
   std::cerr << "Options:" << std::endl;
-  std::cerr << "  --r0 to --r12        Set initial register values (decimal or hex "
+  std::cerr << "  --r0 to --r13        Set initial register values (decimal or hex "
                "with 0x prefix)"
             << std::endl;
   std::cerr << "  --int-file FILE      Text file containing ints (decimal/hex, "
@@ -274,7 +274,7 @@ int main(int argc, char *argv[]) {
       std::string reg_num_str = arg.substr(3);
       try {
         int reg_num = std::stoi(reg_num_str);
-        if (reg_num >= 0 && reg_num <= 12) {
+        if (reg_num >= 0 && reg_num <= 13) {
           // Next argument should be the value
           if (i + 1 < argc) {
             i++;
@@ -288,7 +288,7 @@ int main(int argc, char *argv[]) {
           }
         } else {
           std::cerr << "Error: Invalid register number: " << arg << std::endl;
-          std::cerr << "Valid registers are --r0 through --r12" << std::endl;
+          std::cerr << "Valid registers are --r0 through --r13" << std::endl;
           return 1;
         }
       } catch (...) {
