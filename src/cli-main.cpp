@@ -381,14 +381,14 @@ int main(int argc, char *argv[]) {
       std::cerr << "Error: Maximum instruction count reached ("
                 << MAX_INSTRUCTIONS << ")" << std::endl;
       std::cerr << "Program may be in an infinite loop" << std::endl;
-      dumpRegisterState(cpu.get());
+      if (!json_regs_stderr) dumpRegisterState(cpu.get());
       if (json_regs_stdout) std::cout << registerStateJSON(cpu.get()).dump(2) << std::endl;
       if (json_regs_stderr) std::cerr << registerStateJSON(cpu.get()).dump(2) << std::endl;
       return 2;
     }
 
     // Program completed successfully
-    dumpRegisterState(cpu.get());
+    if (!json_regs_stderr) dumpRegisterState(cpu.get());
     if (json_regs_stdout) std::cout << registerStateJSON(cpu.get()).dump(2) << std::endl;
     if (json_regs_stderr) std::cerr << registerStateJSON(cpu.get()).dump(2) << std::endl;
     return 0;
@@ -398,7 +398,7 @@ int main(int argc, char *argv[]) {
     std::cerr << "Error: " << e.what() << std::endl;
     std::cerr << "Executed " << std::dec << instruction_count << " instructions"
               << std::endl;
-    dumpRegisterState(cpu.get());
+    if (!json_regs_stderr) dumpRegisterState(cpu.get());
     if (json_regs_stdout) std::cout << registerStateJSON(cpu.get()).dump(2) << std::endl;
     if (json_regs_stderr) std::cerr << registerStateJSON(cpu.get()).dump(2) << std::endl;
     return 1;
