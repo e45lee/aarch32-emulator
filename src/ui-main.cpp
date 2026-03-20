@@ -156,7 +156,7 @@ int main(int argc, char *argv[]) {
     } else if (arg[0] == '-') {
       std::cerr << "Error: Unknown option: " << arg << std::endl;
       std::cerr << "Usage: " << argv[0]
-                << " [binary_file] [--r0 VALUE] ... [--r12 VALUE] [--int-file "
+                << " [binary_file] [--r0 VALUE] ... [--r13 VALUE] [--int-file "
                    "FILE --int-addr ADDRESS]"
                 << std::endl;
       return 1;
