@@ -354,9 +354,10 @@ int main(int argc, char *argv[]) {
                          loaded_count)) {
       return 1;
     }
-    std::cerr << "Loaded " << loaded_count << " ints from " << int_list_filename
-              << " at address 0x" << std::hex << int_list_start_address
-              << std::dec << std::endl;
+    if (!json_regs_stderr)
+      std::cerr << "Loaded " << loaded_count << " ints from " << int_list_filename
+                << " at address 0x" << std::hex << int_list_start_address
+                << std::dec << std::endl;
   }
 
   // Apply initial register values
